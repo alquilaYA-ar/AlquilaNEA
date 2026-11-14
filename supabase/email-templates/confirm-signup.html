@@ -48,7 +48,7 @@
               <table border="0" cellspacing="0" cellpadding="0" style="margin: 32px 0;">
                 <tr>
                   <td align="center" style="border-radius: 12px; background-color: #ea580c; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);">
-                    <a href="{{ .ConfirmationURL }}" target="_blank" style="font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 15px 36px; display: inline-block; border-radius: 12px; letter-spacing: 0.2px;">
+                    <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email" target="_blank" style="font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 15px 36px; display: inline-block; border-radius: 12px; letter-spacing: 0.2px;">
                       Confirmar mi cuenta →
                     </a>
                   </td>
@@ -64,8 +64,8 @@
 
               <p style="font-size: 12px; line-height: 1.5; color: #94a3b8; margin: 0;">
                 Si el botón no funciona, copiá y pegá el siguiente enlace en tu navegador:<br>
-                <a href="{{ .ConfirmationURL }}" style="color: #2563eb; word-break: break-all; text-decoration: underline;">
-                  {{ .ConfirmationURL }}
+                <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email" style="color: #2563eb; word-break: break-all; text-decoration: underline;">
+                  {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email
                 </a>
               </p>
             </td>

@@ -9,8 +9,9 @@ function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') || '/publicar';
+  const isVerifiedParam = searchParams.get('verified') === 'true';
 
-  const [isRegister, setIsRegister] = useState(true);
+  const [isRegister, setIsRegister] = useState(!isVerifiedParam);
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState<string | null>(null);
@@ -123,6 +124,13 @@ function LoginFormContent() {
 
       {/* Card Formulario */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-5">
+        {isVerifiedParam && (
+          <div className="p-3.5 rounded-xl bg-green-50 border border-green-200 text-green-800 text-xs font-bold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+            <span>¡Tu correo ha sido confirmado exitosamente! Ingresá tu contraseña para continuar.</span>
+          </div>
+        )}
+
         {errorMessage && (
           <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
             {errorMessage}
