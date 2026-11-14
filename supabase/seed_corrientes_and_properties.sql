@@ -3,6 +3,11 @@
 -- y Propiedades de Demostración reales en Supabase
 -- ==============================================================================
 
+-- 0. SINCRONIZAR SECUENCIAS DE AUTOINCREMENTO (SERIAL)
+SELECT setval(pg_get_serial_sequence('public.localidades', 'id'), COALESCE(MAX(id), 1)) FROM public.localidades;
+SELECT setval(pg_get_serial_sequence('public.barrios', 'id'), COALESCE(MAX(id), 1)) FROM public.barrios;
+SELECT setval(pg_get_serial_sequence('public.provincias', 'id'), COALESCE(MAX(id), 1)) FROM public.provincias;
+
 -- 1. LOCALIDADES DE LA PROVINCIA DE CORRIENTES (provincia_id = 1)
 INSERT INTO public.localidades (provincia_id, nombre, slug) VALUES 
 (1, 'Corrientes Capital', 'corrientes-capital'),
@@ -302,3 +307,4 @@ BEGIN
     ON CONFLICT DO NOTHING;
 
 END $$;
+
