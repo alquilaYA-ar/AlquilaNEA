@@ -293,3 +293,4 @@ INSERT INTO public.barrios (localidad_id, nombre, slug) VALUES
 (4, 'Santa Inés', 'santa-ines'),
 (4, 'Los Troncos', 'los-troncos')
 ON CONFLICT DO NOTHING;
+

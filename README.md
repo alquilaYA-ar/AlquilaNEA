@@ -50,3 +50,4 @@ Cuando desees conectar tu proyecto real en Supabase:
 - [`src/actions/properties.ts`](file:///Users/gonzalovallejos/Documents/alquilaYA/src/actions/properties.ts): Server Actions para búsqueda con filtros dinámicos.
 - [`src/types/database.ts`](file:///Users/gonzalovallejos/Documents/alquilaYA/src/types/database.ts): Tipado TypeScript estricto.
 - [`supabase/schema.sql`](file:///Users/gonzalovallejos/Documents/alquilaYA/supabase/schema.sql): DDL completo con RLS y datos semilla.
+

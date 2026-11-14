@@ -90,3 +90,4 @@ export interface Propiedad {
   profiles?: Profile;
   propiedad_fotos?: PropiedadFoto[];
 }
+

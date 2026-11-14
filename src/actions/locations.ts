@@ -110,3 +110,4 @@ export async function getBarrios(localidadId?: number): Promise<Barrio[]> {
       : FALLBACK_BARRIOS;
   }
 }
+

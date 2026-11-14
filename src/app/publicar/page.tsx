@@ -586,3 +586,4 @@ export default function PublicarPage() {
     </div>
   );
 }
+

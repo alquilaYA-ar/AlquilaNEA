@@ -102,3 +102,4 @@ export default async function PropiedadesPage({ searchParams }: PropiedadesPageP
     </div>
   );
 }
+

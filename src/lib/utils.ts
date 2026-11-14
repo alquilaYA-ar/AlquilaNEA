@@ -20,3 +20,4 @@ export function buildWhatsAppLink(phone: string, propertyTitle: string, property
   );
   return `https://wa.me/${cleanPhone}?text=${message}`;
 }
+

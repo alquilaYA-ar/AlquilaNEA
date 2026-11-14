@@ -46,3 +46,4 @@ export const createPropertySchema = z.object({
 });
 
 export type CreatePropertyInput = z.infer<typeof createPropertySchema>;
+

@@ -413,3 +413,4 @@ export async function getPropertyById(id: string): Promise<Propiedad | null> {
     return DEMO_PROPERTIES.find((p) => p.id === id) || null;
   }
 }
+

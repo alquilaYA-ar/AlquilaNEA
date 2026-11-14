@@ -150,3 +150,4 @@ export function PropertyCard({ property }: PropertyCardProps) {
     </article>
   );
 }
+
