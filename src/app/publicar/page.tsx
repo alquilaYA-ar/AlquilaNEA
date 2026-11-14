@@ -172,7 +172,8 @@ export default function PublicarPage() {
             });
 
           if (uploadError) {
-            console.warn(`Error al subir imagen ${file.name}:`, uploadError.message);
+            console.error(`Error al subir imagen ${file.name}:`, uploadError);
+            throw new Error(`Error en Storage: ${uploadError.message}. Verificá los permisos del bucket 'properties'.`);
           } else {
             const { data: { publicUrl } } = supabase.storage
               .from('properties')
