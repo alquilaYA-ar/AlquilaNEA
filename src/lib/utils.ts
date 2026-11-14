@@ -16,7 +16,7 @@ export function formatCurrency(amount: number, currency: string = "ARS"): string
 export function buildWhatsAppLink(phone: string, propertyTitle: string, propertyPrice: number, propertyUrl: string): string {
   const cleanPhone = phone.replace(/\D/g, "");
   const message = encodeURIComponent(
-    `¡Hola! Vi en AlquilaYa tu publicación "${propertyTitle}" (${formatCurrency(propertyPrice)}). ¿Sigue disponible? Podés verla aquí: ${propertyUrl}`
+    `¡Hola! Vi en AlquilaNEA tu publicación "${propertyTitle}" (${formatCurrency(propertyPrice)}). ¿Sigue disponible? Podés verla aquí: ${propertyUrl}`
   );
   return `https://wa.me/${cleanPhone}?text=${message}`;
 }

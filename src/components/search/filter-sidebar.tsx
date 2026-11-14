@@ -88,7 +88,7 @@ export function FilterSidebar() {
     <aside className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm space-y-6">
       <div className="flex items-center justify-between pb-4 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-emerald-600" />
+          <Filter className="w-4 h-4 text-orange-600" />
           <h3 className="font-bold text-slate-900 text-sm">Filtros Avanzados</h3>
         </div>
         <button
@@ -111,7 +111,7 @@ export function FilterSidebar() {
             onClick={() => setTipoAnunciante(tipoAnunciante === 'dueno_directo' ? '' : 'dueno_directo')}
             className={`py-2 px-3 text-xs font-semibold rounded-xl border text-center transition ${
               tipoAnunciante === 'dueno_directo'
-                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
                 : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
             }`}
           >
@@ -122,7 +122,7 @@ export function FilterSidebar() {
             onClick={() => setTipoAnunciante(tipoAnunciante === 'inmobiliaria' ? '' : 'inmobiliaria')}
             className={`py-2 px-3 text-xs font-semibold rounded-xl border text-center transition ${
               tipoAnunciante === 'inmobiliaria'
-                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                ? 'bg-blue-900 text-white border-blue-900 shadow-sm'
                 : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
             }`}
           >
@@ -169,7 +169,7 @@ export function FilterSidebar() {
               onClick={() => setAmbientes(ambientes === item.val ? '' : item.val)}
               className={`py-2 text-xs font-semibold rounded-xl border text-center transition ${
                 ambientes === item.val
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
             >
@@ -274,7 +274,7 @@ export function FilterSidebar() {
 
       <button
         onClick={aplicarFiltros}
-        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-md transition"
+        className="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-md transition"
       >
         Aplicar Filtros
       </button>

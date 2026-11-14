@@ -38,12 +38,12 @@ export function PropertyCard({ property }: PropertyCardProps) {
         {/* Badge Tipo Anunciante */}
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
           {isDuenoDirecto ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-md">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-600 text-white shadow-md">
               <UserCheck className="w-3.5 h-3.5" />
               Dueño Directo (Sin Comisión)
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-900 text-white shadow-md">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-900 text-white shadow-md">
               <Building2 className="w-3.5 h-3.5" />
               Inmobiliaria
             </span>
@@ -76,7 +76,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
           {/* Título */}
           <Link href={`/propiedad/${property.id}`}>
-            <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-600 transition line-clamp-2 mb-3">
+            <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition line-clamp-2 mb-3">
               {property.titulo}
             </h3>
           </Link>
@@ -89,7 +89,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
             </div>
             <p className="text-xs font-medium mt-0.5">
               {property.expensas_incluidas ? (
-                <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold">
+                <span className="text-blue-800 bg-blue-50 px-2 py-0.5 rounded font-semibold">
                   Expensas incluidas
                 </span>
               ) : (

@@ -211,7 +211,7 @@ export default function PublicarPage() {
           ¡Aviso Publicado con Éxito!
         </h2>
         <p className="text-slate-600 text-sm">
-          Tu propiedad ya se encuentra activa en el catálogo de AlquilaYa y guardada en tu base de datos de Supabase.
+          Tu propiedad ya se encuentra activa en el catálogo de AlquilaNEA y guardada en tu base de datos de Supabase.
         </p>
         <div className="pt-4 flex justify-center gap-3">
           {newPropertyId ? (
@@ -237,8 +237,8 @@ export default function PublicarPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-8">
       {/* Banner Freemium Lanzamiento */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3 text-emerald-900">
-        <Sparkles className="w-5 h-5 text-emerald-600 shrink-0" />
+      <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center gap-3 text-orange-950">
+        <Sparkles className="w-5 h-5 text-orange-600 shrink-0" />
         <div className="text-xs sm:text-sm">
           <span className="font-bold">Lanzamiento regional Corrientes & Chaco:</span> ¡Publicación 100% gratuita para propietarios e inmobiliarias!
         </div>
@@ -246,7 +246,7 @@ export default function PublicarPage() {
 
       <div className="border-b border-slate-200 pb-4">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          Publicar Inmueble en AlquilaYa
+          Publicar Inmueble en Alquila<span className="text-orange-600">NEA</span>
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
           Completá los datos de tu aviso. Te llevará menos de 3 minutos.

@@ -91,7 +91,7 @@ export default async function PropiedadesPage({ searchParams }: PropiedadesPageP
               </p>
               <Link
                 href="/propiedades"
-                className="inline-block text-xs font-semibold px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition"
+                className="inline-block text-xs font-bold px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition"
               >
                 Ver todos los alquileres
               </Link>

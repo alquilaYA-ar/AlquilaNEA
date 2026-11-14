@@ -4,9 +4,9 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 
 export const metadata: Metadata = {
-  title: 'AlquilaYa | Alquileres Inmobiliarios en Corrientes y Chaco',
-  description: 'Encontrá tu próximo alquiler en Corrientes y Chaco. Departamentos, casas y monoambientes publicados por dueños directos e inmobiliarias.',
-  keywords: ['alquiler corrientes', 'alquiler resistencia chaco', 'dueno directo alquiler', 'monoambientes corrientes', 'inmobiliarias resistencia'],
+  title: 'AlquilaNEA | Alquileres Inmobiliarios en Corrientes y Chaco',
+  description: 'Encontrá tu próximo alquiler en el Noreste Argentino: Corrientes y Chaco. Departamentos, casas y monoambientes publicados por dueños directos e inmobiliarias.',
+  keywords: ['alquiler corrientes', 'alquiler resistencia chaco', 'dueno directo alquiler nea', 'monoambientes corrientes', 'inmobiliarias resistencia'],
 };
 
 export default function RootLayout({
@@ -24,4 +24,3 @@ export default function RootLayout({
     </html>
   );
 }
-

@@ -38,7 +38,7 @@ export default async function PropiedadDetallePage({ params }: PropiedadDetalleP
   const mainImageUrl = portada?.storage_path || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
 
   const whatsappNumber = property.profiles?.whatsapp || '';
-  const propertyUrl = `https://alquilaya.com.ar/propiedad/${property.id}`;
+  const propertyUrl = `https://alquilanea.com.ar/propiedad/${property.id}`;
   const whatsappLink = buildWhatsAppLink(whatsappNumber, property.titulo, property.precio_mensual, propertyUrl);
 
   const ubicacionTexto = [
@@ -64,12 +64,12 @@ export default async function PropiedadDetallePage({ params }: PropiedadDetalleP
           {/* Badges */}
           <div className="flex flex-wrap items-center gap-2">
             {isDuenoDirecto ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-sm">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-600 text-white shadow-sm">
                 <UserCheck className="w-4 h-4" />
                 Dueño Directo (Sin Comisión Inmobiliaria)
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-white shadow-sm">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-900 text-white shadow-sm">
                 <Building2 className="w-4 h-4" />
                 Inmobiliaria: {property.profiles?.nombre_inmobiliaria || 'Profesional'}
               </span>
@@ -292,7 +292,7 @@ export default async function PropiedadDetallePage({ params }: PropiedadDetalleP
                 <span>Publicado recientemente</span>
               </div>
               <p className="text-[11px] text-slate-500">
-                AlquilaYa te conecta directamente con el propietario. No envíes dinero previo sin antes visitar el inmueble.
+                AlquilaNEA te conecta directamente con el propietario. No envíes dinero previo sin antes visitar el inmueble.
               </p>
             </div>
           </div>

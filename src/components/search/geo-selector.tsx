@@ -110,7 +110,7 @@ export function GeoSelector({
                 setSelectedLocalidad(undefined);
                 setSelectedBarrio(undefined);
               }}
-              className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+              className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
             >
               <option value="">Todas las provincias</option>
               {provincias.map((prov) => (
@@ -193,7 +193,7 @@ export function GeoSelector({
       <div className="mt-4 flex justify-end">
         <button
           onClick={handleSearch}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-7 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
         >
           <Search className="w-4 h-4" />
           <span>Buscar Alquileres</span>

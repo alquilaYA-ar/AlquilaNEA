@@ -11,11 +11,11 @@ export default function LoginPage() {
   return (
     <div className="max-w-md mx-auto px-4 py-16 space-y-6">
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-white mx-auto shadow-sm">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-700 to-orange-500 flex items-center justify-center text-white mx-auto shadow-md">
           <Home className="w-6 h-6" />
         </div>
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          {isRegister ? 'Crear cuenta en AlquilaYa' : 'Iniciar Sesión'}
+          {isRegister ? 'Crear cuenta en AlquilaNEA' : 'Iniciar Sesión'}
         </h1>
         <p className="text-xs text-slate-500">
           Gestioná tus propiedades publicadas en Corrientes y Chaco
@@ -100,7 +100,7 @@ export default function LoginPage() {
 
         <button
           type="button"
-          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition"
+          className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-sm transition"
         >
           {isRegister ? 'Registrarse como Anunciante' : 'Ingresar'}
         </button>
