@@ -145,9 +145,6 @@ export interface CreatePropertyActionInput {
   precioMensual: number;
   expensasIncluidas: boolean;
   expensasMonto: number;
-  tipoAnunciante: 'dueno_directo' | 'inmobiliaria';
-  nombreContacto: string;
-  whatsapp: string;
   fotosUrls: string[];
 }
 
@@ -155,15 +152,14 @@ export async function createProperty(input: CreatePropertyActionInput) {
   try {
     const supabase = await createClient();
 
-    // 1. Obtener usuario actual o usar el usuario demo
-    const { data: { user } } = await supabase.auth.getUser();
+    // 1. Obtener usuario actual autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    // Si no hay usuario logueado en la sesión de Next.js, usamos el perfil demo asignado al tipo de anunciante
-    const anuncianteId = user?.id || (
-      input.tipoAnunciante === 'dueno_directo'
-        ? 'a1111111-1111-1111-1111-111111111111'
-        : 'a3333333-3333-3333-3333-333333333333'
-    );
+    if (userError || !user) {
+      throw new Error('Debes iniciar sesión para publicar una propiedad.');
+    }
+
+    const anuncianteId = user.id;
 
     // 2. Insertar la propiedad en Supabase
     const { data: prop, error: propError } = await supabase
