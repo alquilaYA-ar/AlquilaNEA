@@ -377,3 +377,173 @@ export async function changePropertyStatus(propertyId: string, nuevoEstado: 'act
     return { success: false, error: err.message };
   }
 }
+
+export async function addPropertyPhotos(propertyId: string, fotosUrls: string[]) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No autorizado.');
+
+    // Verificar que la propiedad pertenezca al usuario
+    const { data: prop, error: propErr } = await supabase
+      .from('propiedades')
+      .select('id, anunciante_id')
+      .eq('id', propertyId)
+      .eq('anunciante_id', user.id)
+      .single();
+
+    if (propErr || !prop) throw new Error('Propiedad no encontrada o permisos insuficientes.');
+
+    // Obtener fotos actuales
+    const { data: existingPhotos } = await supabase
+      .from('propiedad_fotos')
+      .select('id, es_portada, orden')
+      .eq('propiedad_id', propertyId)
+      .order('orden', { ascending: false });
+
+    const currentCount = existingPhotos?.length || 0;
+    const hasCover = existingPhotos?.some((p) => p.es_portada) || false;
+
+    const newRows = fotosUrls.map((url, idx) => ({
+      propiedad_id: propertyId,
+      storage_path: url,
+      orden: currentCount + idx,
+      es_portada: !hasCover && idx === 0,
+    }));
+
+    const { data: inserted, error: insertError } = await supabase
+      .from('propiedad_fotos')
+      .insert(newRows)
+      .select();
+
+    if (insertError) throw new Error(insertError.message);
+
+    revalidatePath('/');
+    revalidatePath('/propiedades');
+    revalidatePath(`/propiedad/${propertyId}`);
+    revalidatePath(`/mis-publicaciones/editar/${propertyId}`);
+    revalidatePath('/mis-publicaciones');
+
+    return { success: true, photos: inserted };
+  } catch (err: any) {
+    console.error('addPropertyPhotos error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deletePropertyPhoto(photoId: string, propertyId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No autorizado.');
+
+    // Verificar propiedad
+    const { data: prop } = await supabase
+      .from('propiedades')
+      .select('id, anunciante_id')
+      .eq('id', propertyId)
+      .eq('anunciante_id', user.id)
+      .single();
+
+    if (!prop) throw new Error('Permisos insuficientes.');
+
+    // Obtener la foto antes de borrar
+    const { data: photoToDelete } = await supabase
+      .from('propiedad_fotos')
+      .select('*')
+      .eq('id', photoId)
+      .eq('propiedad_id', propertyId)
+      .single();
+
+    if (!photoToDelete) throw new Error('Foto no encontrada.');
+
+    // Intentar borrar del Storage de Supabase si corresponde
+    if (photoToDelete.storage_path) {
+      const pathParts = photoToDelete.storage_path.split('/properties/');
+      const fileName = pathParts.length > 1 ? pathParts[1] : photoToDelete.storage_path;
+      if (fileName && !fileName.startsWith('http')) {
+        await supabase.storage.from('properties').remove([fileName]);
+      }
+    }
+
+    const { error: delError } = await supabase
+      .from('propiedad_fotos')
+      .delete()
+      .eq('id', photoId)
+      .eq('propiedad_id', propertyId);
+
+    if (delError) throw new Error(delError.message);
+
+    // Si la foto borrada era la portada, promover la siguiente foto
+    if (photoToDelete.es_portada) {
+      const { data: remaining } = await supabase
+        .from('propiedad_fotos')
+        .select('id')
+        .eq('propiedad_id', propertyId)
+        .order('orden', { ascending: true })
+        .limit(1);
+
+      if (remaining && remaining.length > 0) {
+        await supabase
+          .from('propiedad_fotos')
+          .update({ es_portada: true })
+          .eq('id', remaining[0].id);
+      }
+    }
+
+    revalidatePath('/');
+    revalidatePath('/propiedades');
+    revalidatePath(`/propiedad/${propertyId}`);
+    revalidatePath(`/mis-publicaciones/editar/${propertyId}`);
+    revalidatePath('/mis-publicaciones');
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('deletePropertyPhoto error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function setCoverPhoto(photoId: string, propertyId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No autorizado.');
+
+    // Verificar propiedad
+    const { data: prop } = await supabase
+      .from('propiedades')
+      .select('id, anunciante_id')
+      .eq('id', propertyId)
+      .eq('anunciante_id', user.id)
+      .single();
+
+    if (!prop) throw new Error('Permisos insuficientes.');
+
+    // Desmarcar todas las fotos como portada
+    await supabase
+      .from('propiedad_fotos')
+      .update({ es_portada: false })
+      .eq('propiedad_id', propertyId);
+
+    // Marcar la foto seleccionada
+    const { error } = await supabase
+      .from('propiedad_fotos')
+      .update({ es_portada: true })
+      .eq('id', photoId)
+      .eq('propiedad_id', propertyId);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath('/');
+    revalidatePath('/propiedades');
+    revalidatePath(`/propiedad/${propertyId}`);
+    revalidatePath(`/mis-publicaciones/editar/${propertyId}`);
+    revalidatePath('/mis-publicaciones');
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('setCoverPhoto error:', err);
+    return { success: false, error: err.message };
+  }
+}
