@@ -24,8 +24,18 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
 .env
+.env*.local
+.env.development
+.env.test
+.env.production
+.env.local
+!.env.example
+
+# vercel & ide
+.vercel
+.idea
+.vscode
 
 # typescript
 *.tsbuildinfo

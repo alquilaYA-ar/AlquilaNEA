@@ -1,53 +1,51 @@
-# 🏠 AlquilaYa - Clasificados Inmobiliarios (Corrientes & Chaco)
+# 🏢 AlquilaNEA - El Portal de Alquileres Inmobiliarios del Litoral
 
-Plataforma web de clasificados de alquileres inmobiliarios enfocada inicialmente en las provincias de **Corrientes** y **Chaco** (Argentina), construida con **Next.js 15 (App Router)**, **TypeScript**, **Tailwind CSS** y **Supabase**.
+Plataforma web de clasificados de alquileres inmobiliarios enfocada en las provincias de **Corrientes** y **Chaco** (Argentina), construida con **Next.js 15 (App Router)**, **TypeScript**, **Tailwind CSS** y **Supabase (PostgreSQL, Auth, Storage, RLS)**.
 
 ---
 
 ## 🚀 Puesta en Marcha Rápida (Local)
 
-### 1. Iniciar el Servidor de Desarrollo
+### 1. Clonar el repositorio
+```bash
+git clone https://github.com/alquilaYA-ar/AlquilaNEA.git
+cd AlquilaNEA
+```
+
+### 2. Instalar dependencias
+```bash
+npm install
+```
+
+### 3. Configurar variables de entorno
+Crea un archivo `.env.local` en la raíz del proyecto basándote en `.env.example`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+### 4. Iniciar el servidor de desarrollo
 ```bash
 npm run dev
 ```
 Abre en tu navegador [http://localhost:3000](http://localhost:3000).
 
-> **Nota:** La aplicación incluye un conjunto de datos semilla de demostración realistas (Resistencia, Corrientes Capital, Camba Cuá, Villa San Martín, etc.) que te permiten navegar, probar los filtros y ver fichas de propiedades inmediatamente sin necesidad de configurar Supabase primero.
+---
+
+## 🗄️ Base de Datos y Supabase
+
+Los scripts SQL listos para ejecutar en el SQL Editor de Supabase se encuentran en la carpeta `supabase/`:
+* `supabase/schema.sql`: Creación de tablas, relaciones jerárquicas (Provincias, Localidades, Barrios), perfiles, triggers y políticas RLS.
+* `supabase/seed_corrientes_and_properties.sql`: Carga de las 42 localidades de Corrientes, los 52 barrios de Corrientes Capital y propiedades de ejemplo.
+* `supabase/email-templates/`: Plantillas HTML personalizadas para confirmación de registro y restablecimiento de contraseña.
 
 ---
 
-## 🗄️ Conectar con tu Base de Datos Supabase
+## 🧭 Características Principales
 
-Cuando desees conectar tu proyecto real en Supabase:
-
-1. **Crear Proyecto en Supabase:**
-   - Ve a [supabase.com](https://supabase.com) y crea un nuevo proyecto (se sugiere región `sa-east-1` São Paulo para menor latencia en Argentina).
-2. **Ejecutar el Script SQL:**
-   - Copia el contenido del archivo [`supabase/schema.sql`](file:///Users/gonzalovallejos/Documents/alquilaYA/supabase/schema.sql) y pégalo en el **SQL Editor** de Supabase.
-   - Esto creará automáticamente:
-     - Jerarquía geográfica (`provincias`, `localidades`, `barrios`) con datos de Corrientes y Chaco.
-     - Perfiles vinculados a `auth.users` con distinción entre **Dueño Directo** e **Inmobiliaria**.
-     - Tablas de `propiedades`, `propiedad_fotos` y `pagos_publicacion`.
-     - Políticas de seguridad por fila (**Row Level Security - RLS**).
-     - Triggers automáticos y buckets de almacenamiento.
-3. **Configurar Variables de Entorno:**
-   - Crea un archivo `.env.local` en la raíz (basándote en `.env.example`):
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-clave-anon
-   NEXT_PUBLIC_SITE_URL=http://localhost:3000
-   ```
-
----
-
-## 🧭 Estructura del Proyecto
-
-- [`src/app/page.tsx`](file:///Users/gonzalovallejos/Documents/alquilaYA/src/app/page.tsx): Landing page con Hero y buscador geográfico en cascada.
-- [`src/app/propiedades/page.tsx`](file:///Users/gonzalovallejos/Documents/alquilaYA/src/app/propiedades/page.tsx): Catálogo de resultados con sidebar de filtros avanzados.
-- [`src/app/propiedad/[id]/page.tsx`](file:///Users/gonzalovallejos/Documents/alquilaYA/src/app/propiedad/[id]/page.tsx): Ficha técnica con fotos, desglose de precio/expensas y botón directo a WhatsApp.
-- [`src/app/publicar/page.tsx`](file:///Users/gonzalovallejos/Documents/alquilaYA/src/app/publicar/page.tsx): Asistente multi-paso para publicación de avisos (Ubicación, Características, Fotos y Contacto).
-- [`src/actions/locations.ts`](file:///Users/gonzalovallejos/Documents/alquilaYA/src/actions/locations.ts): Server Actions para Provincias, Localidades y Barrios.
-- [`src/actions/properties.ts`](file:///Users/gonzalovallejos/Documents/alquilaYA/src/actions/properties.ts): Server Actions para búsqueda con filtros dinámicos.
-- [`src/types/database.ts`](file:///Users/gonzalovallejos/Documents/alquilaYA/src/types/database.ts): Tipado TypeScript estricto.
-- [`supabase/schema.sql`](file:///Users/gonzalovallejos/Documents/alquilaYA/supabase/schema.sql): DDL completo con RLS y datos semilla.
-
+* **Buscador Jerárquico en Cascada:** Provincia ➔ Localidad / Ciudad ➔ Barrio.
+* **Filtros Avanzados:** Por tipo de anunciante (*Dueño Directo sin comisión* o *Inmobiliaria*), ambientes, comodidades (cochera, balcón, patio, expensas) y rango de precio.
+* **Contacto Directo por WhatsApp:** Mensajes prearmados automáticos para agilizar el contacto entre inquilinos y propietarios.
+* **Autenticación y Sesiones:** Middleware con rotación automática de Access Tokens / Refresh Tokens mediante `@supabase/ssr`.
+* **Subida de Fotografías:** Almacenamiento directo en Supabase Storage con compresión previa.

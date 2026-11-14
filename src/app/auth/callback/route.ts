@@ -29,3 +29,4 @@ export async function GET(request: Request) {
   // Si falló el código o expiró, redirigir al login con mensaje
   return NextResponse.redirect(`${origin}/login?error=invalid_token`);
 }
+
