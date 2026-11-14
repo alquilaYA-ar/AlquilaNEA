@@ -227,7 +227,7 @@ const DEMO_PROPERTIES: Propiedad[] = [
       {
         id: 'foto-6',
         propiedad_id: 'prop-4',
-        storage_path: 'https://images.unsplash.com/photo-1502005229762-ee152da7c5d6?auto=format&fit=crop&w=1000&q=80',
+        storage_path: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80',
         orden: 0,
         es_portada: true,
         created_at: '',
