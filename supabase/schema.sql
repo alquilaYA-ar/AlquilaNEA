@@ -167,9 +167,22 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER 
 LANGUAGE plpgsql 
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, auth
 AS $$
+DECLARE
+  v_tipo public.tipo_anunciante_enum;
 BEGIN
+  -- Intentar castear el tipo de anunciante de forma segura
+  BEGIN
+    v_tipo := (NEW.raw_user_meta_data->>'tipo_anunciante')::public.tipo_anunciante_enum;
+  EXCEPTION WHEN OTHERS THEN
+    v_tipo := 'dueno_directo'::public.tipo_anunciante_enum;
+  END;
+
+  IF v_tipo IS NULL THEN
+    v_tipo := 'dueno_directo'::public.tipo_anunciante_enum;
+  END IF;
+
   INSERT INTO public.profiles (
     id, 
     nombre_completo, 
@@ -182,10 +195,10 @@ BEGIN
   )
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'nombre_completo', 'Nuevo Usuario'),
-    COALESCE(NEW.raw_user_meta_data->>'whatsapp', ''),
-    COALESCE(NEW.email, ''),
-    COALESCE((NEW.raw_user_meta_data->>'tipo_anunciante')::public.tipo_anunciante_enum, 'dueno_directo'::public.tipo_anunciante_enum),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'nombre_completo', ''), 'Nuevo Usuario'),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'whatsapp', ''), '0000000000'),
+    COALESCE(NULLIF(NEW.email, ''), ''),
+    v_tipo,
     NEW.raw_user_meta_data->>'nombre_inmobiliaria',
     NEW.raw_user_meta_data->>'matricula_inmobiliaria',
     NEW.raw_user_meta_data->>'telefono'
@@ -193,7 +206,16 @@ BEGIN
   ON CONFLICT (id) DO UPDATE SET
     nombre_completo = EXCLUDED.nombre_completo,
     whatsapp = EXCLUDED.whatsapp,
-    tipo_anunciante = EXCLUDED.tipo_anunciante;
+    tipo_anunciante = EXCLUDED.tipo_anunciante,
+    nombre_inmobiliaria = EXCLUDED.nombre_inmobiliaria,
+    matricula_inmobiliaria = EXCLUDED.matricula_inmobiliaria,
+    telefono = EXCLUDED.telefono,
+    updated_at = NOW();
+
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- Prevenir que un fallo en profiles aborte la transacción de auth.users
+  RAISE WARNING 'handle_new_user error ignorado: %', SQLERRM;
   RETURN NEW;
 END;
 $$;
