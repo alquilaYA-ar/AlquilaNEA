@@ -164,19 +164,39 @@ CREATE INDEX IF NOT EXISTS idx_propiedad_fotos_propiedad ON public.propiedad_fot
 
 -- 9. TRIGGERS
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql 
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
-  INSERT INTO public.profiles (id, nombre_completo, whatsapp, email_contacto, tipo_anunciante)
+  INSERT INTO public.profiles (
+    id, 
+    nombre_completo, 
+    whatsapp, 
+    email_contacto, 
+    tipo_anunciante,
+    nombre_inmobiliaria,
+    matricula_inmobiliaria,
+    telefono
+  )
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'nombre_completo', 'Nuevo Usuario'),
     COALESCE(NEW.raw_user_meta_data->>'whatsapp', ''),
     COALESCE(NEW.email, ''),
-    COALESCE((NEW.raw_user_meta_data->>'tipo_anunciante')::tipo_anunciante_enum, 'dueno_directo')
-  );
+    COALESCE((NEW.raw_user_meta_data->>'tipo_anunciante')::public.tipo_anunciante_enum, 'dueno_directo'::public.tipo_anunciante_enum),
+    NEW.raw_user_meta_data->>'nombre_inmobiliaria',
+    NEW.raw_user_meta_data->>'matricula_inmobiliaria',
+    NEW.raw_user_meta_data->>'telefono'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    nombre_completo = EXCLUDED.nombre_completo,
+    whatsapp = EXCLUDED.whatsapp,
+    tipo_anunciante = EXCLUDED.tipo_anunciante;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
