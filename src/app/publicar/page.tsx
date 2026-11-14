@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   Upload,
   CheckCircle,
@@ -9,24 +10,35 @@ import {
   DollarSign,
   Image as ImageIcon,
   Check,
-  AlertCircle,
   Sparkles,
+  X,
+  Loader2,
 } from 'lucide-react';
 import { Provincia, Localidad, Barrio } from '@/types/database';
 import { getProvincias, getLocalidades, getBarrios } from '@/actions/locations';
+import { createProperty } from '@/actions/properties';
+import { createClient } from '@/lib/supabase/client';
 
 export default function PublicarPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Paso actual (1: Ubicación, 2: Datos y Precios, 3: Fotos y Confirmación)
+  // Paso actual (1: Ubicación, 2: Datos y Precios, 3: Contacto y Fotos)
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [newPropertyId, setNewPropertyId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Datos geográficos
   const [provincias, setProvincias] = useState<Provincia[]>([]);
   const [localidades, setLocalidades] = useState<Localidad[]>([]);
   const [barrios, setBarrios] = useState<Barrio[]>([]);
+
+  // Estado de Fotos
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
 
   // Form State
   const [formData, setFormData] = useState({
@@ -49,8 +61,7 @@ export default function PublicarPage() {
     precioMensual: '',
     expensasIncluidas: true,
     expensasMonto: '',
-    // Datos de contacto rápido para el MVP
-    tipoAnunciante: 'dueno_directo',
+    tipoAnunciante: 'dueno_directo' as 'dueno_directo' | 'inmobiliaria',
     nombreContacto: '',
     whatsapp: '',
     destacar: false,
@@ -86,20 +97,108 @@ export default function PublicarPage() {
       setBarrios(bars);
       if (bars.length > 0) {
         setFormData((prev) => ({ ...prev, barrioId: bars[0].id.toString() }));
+      } else {
+        setFormData((prev) => ({ ...prev, barrioId: '' }));
       }
     }
     loadBars();
   }, [formData.localidadId]);
 
+  // Manejo de Fotos Locales
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
+    setSelectedFiles((prev) => [...prev, ...files]);
+
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    setPreviewUrls((prev) => [...prev, ...newPreviews]);
+  };
+
+  const removePhoto = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
 
-    // Simulación de guardado en Supabase / Backend
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const supabase = createClient();
+      const uploadedUrls: string[] = [];
+
+      // 1. Subir fotos a Supabase Storage
+      if (selectedFiles.length > 0) {
+        setUploadProgress(`Subiendo 1 de ${selectedFiles.length} fotos a Supabase Storage...`);
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          setUploadProgress(`Subiendo foto ${i + 1} de ${selectedFiles.length}...`);
+
+          const fileExt = file.name.split('.').pop() || 'jpg';
+          const cleanName = file.name.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20);
+          const fileName = `${Date.now()}_${cleanName}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('properties')
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              upsert: true,
+            });
+
+          if (uploadError) {
+            console.warn(`Error al subir imagen ${file.name}:`, uploadError.message);
+          } else {
+            const { data: { publicUrl } } = supabase.storage
+              .from('properties')
+              .getPublicUrl(fileName);
+            uploadedUrls.push(publicUrl);
+          }
+        }
+      }
+
+      setUploadProgress('Guardando aviso en la base de datos...');
+
+      // 2. Guardar propiedad en Supabase vía Server Action
+      const res = await createProperty({
+        provinciaId: Number(formData.provinciaId),
+        localidadId: Number(formData.localidadId),
+        barrioId: formData.barrioId ? Number(formData.barrioId) : null,
+        direccionCalle: formData.direccionCalle || undefined,
+        titulo: formData.titulo,
+        descripcion: formData.descripcion,
+        tipoInmueble: formData.tipoInmueble,
+        ambientes: Number(formData.ambientes),
+        dormitorios: Number(formData.dormitorios),
+        banos: Number(formData.banos),
+        cochera: formData.cochera,
+        terrazaBalcon: formData.terrazaBalcon,
+        patio: formData.patio,
+        aceptaMascotas: formData.aceptaMascotas,
+        aireAcondicionado: formData.aireAcondicionado,
+        pileta: formData.pileta,
+        precioMensual: Number(formData.precioMensual),
+        expensasIncluidas: formData.expensasIncluidas,
+        expensasMonto: formData.expensasIncluidas ? 0 : Number(formData.expensasMonto || 0),
+        tipoAnunciante: formData.tipoAnunciante,
+        nombreContacto: formData.nombreContacto,
+        whatsapp: formData.whatsapp,
+        fotosUrls: uploadedUrls,
+      });
+
+      if (!res.success) {
+        throw new Error(res.error || 'Ocurrió un error al guardar la propiedad');
+      }
+
+      setNewPropertyId(res.propertyId || null);
       setSuccess(true);
-    }, 1200);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Error al procesar la publicación.');
+    } finally {
+      setLoading(false);
+      setUploadProgress('');
+    }
   };
 
   if (success) {
@@ -112,15 +211,24 @@ export default function PublicarPage() {
           ¡Aviso Publicado con Éxito!
         </h2>
         <p className="text-slate-600 text-sm">
-          Tu propiedad ya se encuentra activa en el catálogo de AlquilaYa para las provincias de Corrientes y Chaco. Los interesados podrán contactarte directamente a tu WhatsApp.
+          Tu propiedad ya se encuentra activa en el catálogo de AlquilaYa y guardada en tu base de datos de Supabase.
         </p>
         <div className="pt-4 flex justify-center gap-3">
-          <button
-            onClick={() => router.push('/propiedades')}
-            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm shadow-sm transition"
-          >
-            Ver en el catálogo
-          </button>
+          {newPropertyId ? (
+            <button
+              onClick={() => router.push(`/propiedad/${newPropertyId}`)}
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm shadow-sm transition"
+            >
+              Ver mi aviso publicado
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push('/propiedades')}
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm shadow-sm transition"
+            >
+              Ir al catálogo
+            </button>
+          )}
         </div>
       </div>
     );
@@ -144,6 +252,12 @@ export default function PublicarPage() {
           Completá los datos de tu aviso. Te llevará menos de 3 minutos.
         </p>
       </div>
+
+      {errorMessage && (
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+          {errorMessage}
+        </div>
+      )}
 
       {/* Progress Steps */}
       <div className="flex items-center justify-between relative">
@@ -224,7 +338,7 @@ export default function PublicarPage() {
                   onChange={(e) => setFormData({ ...formData, barrioId: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium"
                 >
-                  <option value="">Seleccionar barrio</option>
+                  <option value="">Seleccionar barrio (Opcional)</option>
                   {barrios.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.nombre}
@@ -289,7 +403,7 @@ export default function PublicarPage() {
                 <select
                   value={formData.tipoInmueble}
                   onChange={(e) => setFormData({ ...formData, tipoInmueble: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm capitalize"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm capitalize"
                 >
                   <option value="departamento">Departamento</option>
                   <option value="casa">Casa</option>
@@ -463,7 +577,7 @@ export default function PublicarPage() {
           <div className="space-y-6">
             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-emerald-600" />
-              <span>3. Datos de Contacto y Fotos</span>
+              <span>3. Datos de Contacto y Fotos Reales</span>
             </h3>
 
             {/* Selector Tipo Anunciante */}
@@ -521,7 +635,7 @@ export default function PublicarPage() {
                 <input
                   type="text"
                   required
-                  placeholder="Ej: 3794123456 o 3624889900"
+                  placeholder="Ej: 3794123456"
                   value={formData.whatsapp}
                   onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm"
@@ -529,42 +643,70 @@ export default function PublicarPage() {
               </div>
             </div>
 
-            {/* Zona de Subida de Fotos */}
+            {/* ZONA DE SUBIDA REAL DE FOTOS */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Fotografías del Inmueble (Supabase Storage)
               </label>
-              <div className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/50">
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/50"
+              >
                 <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                 <p className="text-sm font-bold text-slate-800">
-                  Arrastrá tus fotos o hacé clic para seleccionar
+                  Hacé clic para seleccionar o arrastrá fotos del inmueble
                 </p>
                 <p className="text-xs text-slate-400 mt-1">
-                  Formatos JPG, PNG o WebP. Se optimizan automáticamente.
+                  Formatos JPG, PNG o WebP. Se suben directamente a tu bucket de Supabase.
                 </p>
               </div>
+
+              {/* Previsualización de imágenes seleccionadas */}
+              {previewUrls.length > 0 && (
+                <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {previewUrls.map((url, idx) => (
+                    <div
+                      key={idx}
+                      className="relative aspect-[4/3] rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 group"
+                    >
+                      <Image
+                        src={url}
+                        alt={`Preview ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                      {idx === 0 && (
+                        <span className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[10px] font-semibold px-2 py-0.5 rounded">
+                          Portada
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removePhoto(idx);
+                        }}
+                        className="absolute top-1.5 right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 opacity-90 transition"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Pasarela Mercado Pago Opcional (Destacar) */}
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.destacar}
-                  onChange={(e) => setFormData({ ...formData, destacar: e.target.checked })}
-                  className="rounded text-amber-600 focus:ring-amber-500"
-                />
-                <span className="text-xs sm:text-sm font-bold text-amber-950 flex items-center gap-1">
-                  <Sparkles className="w-4 h-4 text-amber-600" />
-                  Destacar este aviso en los primeros puestos por 30 días
-                </span>
-              </label>
-              <p className="text-xs text-amber-800 pl-6">
-                (Integración con Mercado Pago preparada para activar visibilidad preferencial).
-              </p>
-            </div>
-
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between items-center pt-4">
               <button
                 type="button"
                 onClick={() => setStep(2)}
@@ -572,13 +714,23 @@ export default function PublicarPage() {
               >
                 ← Volver
               </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-md transition disabled:opacity-50"
-              >
-                {loading ? 'Publicando...' : 'Confirmar y Publicar Aviso'}
-              </button>
+
+              <div className="flex items-center gap-3">
+                {uploadProgress && (
+                  <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    {uploadProgress}
+                  </span>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-md transition disabled:opacity-50 flex items-center gap-2"
+                >
+                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{loading ? 'Publicando en Supabase...' : 'Confirmar y Publicar Aviso'}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -586,4 +738,3 @@ export default function PublicarPage() {
     </div>
   );
 }
-

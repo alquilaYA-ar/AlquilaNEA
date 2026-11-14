@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { Sparkles, ShieldCheck, MessageCircle, Building2, ArrowRight } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 import { getProvincias } from '@/actions/locations';
 import { searchProperties } from '@/actions/properties';
 import { GeoSelector } from '@/components/search/geo-selector';
