@@ -13,6 +13,7 @@ function LoginFormContent() {
   const [isRegister, setIsRegister] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState<string | null>(null);
 
   // Form State
   const [tipoAnunciante, setTipoAnunciante] = useState<'dueno_directo' | 'inmobiliaria'>('dueno_directo');
@@ -49,6 +50,11 @@ function LoginFormContent() {
           return;
         }
 
+        if (res.requiresVerification) {
+          setEmailSent(email);
+          return;
+        }
+
         router.push(redirectTo);
         router.refresh();
       } else {
@@ -64,6 +70,39 @@ function LoginFormContent() {
       }
     });
   };
+
+  if (emailSent) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 text-center space-y-6">
+        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+          <Mail className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            ¡Revisá tu correo electrónico!
+          </h2>
+          <p className="text-sm text-slate-600">
+            Enviamos un enlace de verificación a <span className="font-bold text-slate-900">{emailSent}</span>.
+          </p>
+          <p className="text-xs text-slate-500 pt-1">
+            Hacé clic en el botón de confirmación en tu correo para activar tu cuenta y comenzar a publicar en AlquilaNEA.
+          </p>
+        </div>
+
+        <div className="pt-4">
+          <button
+            onClick={() => {
+              setEmailSent(null);
+              setIsRegister(false);
+            }}
+            className="text-xs font-semibold text-orange-600 hover:text-orange-700 transition cursor-pointer"
+          >
+            ← Volver a Iniciar Sesión
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-lg mx-auto px-4 py-12 space-y-6">

@@ -18,11 +18,13 @@ export interface SignUpInput {
 export async function signUp(input: SignUpInput) {
   try {
     const supabase = await createClient();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
     const { data, error } = await supabase.auth.signUp({
       email: input.email,
       password: input.password,
       options: {
+        emailRedirectTo: `${siteUrl}/auth/callback?next=/publicar`,
         data: {
           nombre_completo: input.nombreCompleto,
           whatsapp: input.whatsapp,
@@ -37,6 +39,9 @@ export async function signUp(input: SignUpInput) {
     if (error) {
       return { success: false, error: error.message };
     }
+
+    // Si Supabase tiene verificación de correo activada, session será null hasta que confirme
+    const requiresVerification = !data.session;
 
     // Asegurar que el perfil quede insertado/actualizado en public.profiles
     if (data.user) {
@@ -57,7 +62,13 @@ export async function signUp(input: SignUpInput) {
     }
 
     revalidatePath('/', 'layout');
-    return { success: true, user: data.user, session: data.session };
+    return {
+      success: true,
+      user: data.user,
+      session: data.session,
+      requiresVerification,
+      email: input.email,
+    };
   } catch (err: any) {
     return { success: false, error: err.message || 'Error inesperado al registrar usuario.' };
   }
@@ -127,3 +138,4 @@ export async function getCurrentUser(): Promise<{ user: any; profile: Profile | 
     return { user: null, profile: null };
   }
 }
+
