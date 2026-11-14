@@ -215,10 +215,165 @@ export async function createProperty(input: CreatePropertyActionInput) {
 
     revalidatePath('/');
     revalidatePath('/propiedades');
+    revalidatePath('/mis-publicaciones');
 
     return { success: true, propertyId: prop.id };
   } catch (err: any) {
     console.error('createProperty error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function getMyProperties(): Promise<Propiedad[]> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('propiedades')
+      .select(`
+        *,
+        provincias (*),
+        localidades (*),
+        barrios (*),
+        profiles (*),
+        propiedad_fotos (*)
+      `)
+      .eq('anunciante_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error in getMyProperties:', error);
+      return [];
+    }
+
+    return (data as Propiedad[]) || [];
+  } catch (err) {
+    console.error('Unexpected error in getMyProperties:', err);
+    return [];
+  }
+}
+
+export interface UpdatePropertyActionInput {
+  propertyId: string;
+  titulo: string;
+  descripcion: string;
+  tipoInmueble: string;
+  ambientes: number;
+  dormitorios: number;
+  banos: number;
+  cochera: boolean;
+  terrazaBalcon: boolean;
+  patio: boolean;
+  aceptaMascotas: boolean;
+  aireAcondicionado: boolean;
+  pileta: boolean;
+  precioMensual: number;
+  expensasIncluidas: boolean;
+  expensasMonto: number;
+  estado: 'activa' | 'pausada' | 'alquilada';
+}
+
+export async function updateProperty(input: UpdatePropertyActionInput) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('Debes iniciar sesión para editar una propiedad.');
+    }
+
+    // Actualizar estrictamente solo los campos modificables (SIN tocar ubicaciones)
+    const { error } = await supabase
+      .from('propiedades')
+      .update({
+        titulo: input.titulo,
+        descripcion: input.descripcion,
+        tipo_inmueble: input.tipoInmueble,
+        ambientes: input.ambientes,
+        dormitorios: input.dormitorios,
+        banos: input.banos,
+        cochera: input.cochera,
+        terraza_balcon: input.terrazaBalcon,
+        patio: input.patio,
+        acepta_mascotas: input.aceptaMascotas,
+        aire_acondicionado: input.aireAcondicionado,
+        pileta: input.pileta,
+        precio_mensual: input.precioMensual,
+        expensas_incluidas: input.expensasIncluidas,
+        expensas_monto: input.expensasMonto,
+        estado: input.estado,
+      })
+      .eq('id', input.propertyId)
+      .eq('anunciante_id', user.id); // Asegura que solo el dueño legítimo pueda editarla
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidatePath('/');
+    revalidatePath('/propiedades');
+    revalidatePath(`/propiedad/${input.propertyId}`);
+    revalidatePath('/mis-publicaciones');
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('updateProperty error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deleteProperty(propertyId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('No autorizado.');
+
+    const { error } = await supabase
+      .from('propiedades')
+      .delete()
+      .eq('id', propertyId)
+      .eq('anunciante_id', user.id);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath('/');
+    revalidatePath('/propiedades');
+    revalidatePath('/mis-publicaciones');
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('deleteProperty error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function changePropertyStatus(propertyId: string, nuevoEstado: 'activa' | 'pausada' | 'alquilada') {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('No autorizado.');
+
+    const { error } = await supabase
+      .from('propiedades')
+      .update({ estado: nuevoEstado })
+      .eq('id', propertyId)
+      .eq('anunciante_id', user.id);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath('/');
+    revalidatePath('/propiedades');
+    revalidatePath(`/propiedad/${propertyId}`);
+    revalidatePath('/mis-publicaciones');
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('changePropertyStatus error:', err);
     return { success: false, error: err.message };
   }
 }

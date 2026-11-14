@@ -41,19 +41,30 @@ export function UserNav() {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200/80 text-xs font-semibold text-slate-800">
+      <Link
+        href="/mis-publicaciones"
+        className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-xs font-semibold text-slate-800 transition"
+        title="Ir a Mis Publicaciones"
+      >
         {isDuenoDirecto ? (
           <UserCheck className="w-3.5 h-3.5 text-orange-600" />
         ) : (
           <Building2 className="w-3.5 h-3.5 text-blue-700" />
         )}
         <span className="max-w-[130px] truncate">{displayName}</span>
-      </div>
+      </Link>
+
+      <Link
+        href="/mis-publicaciones"
+        className="text-xs font-bold text-slate-700 hover:text-orange-600 transition px-2 py-1.5 hidden md:block"
+      >
+        Mis Avisos
+      </Link>
 
       <button
         onClick={handleSignOut}
         title="Cerrar Sesión"
-        className="p-2 text-slate-500 hover:text-red-600 transition rounded-lg hover:bg-slate-100"
+        className="p-2 text-slate-500 hover:text-red-600 transition rounded-lg hover:bg-slate-100 cursor-pointer"
       >
         <LogOut className="w-4 h-4" />
       </button>
