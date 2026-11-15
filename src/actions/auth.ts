@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { Profile } from '@/types/database';
 import { revalidatePath } from 'next/cache';
+import { getSiteUrl } from '@/lib/utils';
 
 export interface SignUpInput {
   email: string;
@@ -18,7 +19,7 @@ export interface SignUpInput {
 export async function signUp(input: SignUpInput) {
   try {
     const supabase = await createClient();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const siteUrl = getSiteUrl();
 
     const { data, error } = await supabase.auth.signUp({
       email: input.email,

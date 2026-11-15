@@ -19,7 +19,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { getPropertyById } from '@/actions/properties';
-import { formatCurrency, buildWhatsAppLink } from '@/lib/utils';
+import { formatCurrency, buildWhatsAppLink, getSiteUrl } from '@/lib/utils';
 import { PropertyGallery } from '@/components/properties/property-gallery';
 import { TrackPropertyView } from '@/components/properties/track-view';
 
@@ -37,12 +37,16 @@ export async function generateMetadata({ params }: PropiedadDetallePageProps): P
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://alquilanea.com.ar';
+  const siteUrl = getSiteUrl();
   const fotos = property.propiedad_fotos || [];
   const portada = fotos.find((f) => f.es_portada) || fotos[0];
-  const imageUrl =
+  let imageUrl =
     portada?.storage_path ||
     'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
+
+  if (!imageUrl.startsWith('http')) {
+    imageUrl = `${siteUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+  }
 
   const ubicacion = [
     property.barrios?.nombre,
@@ -62,16 +66,19 @@ export async function generateMetadata({ params }: PropiedadDetallePageProps): P
       title,
       description,
       url: `${siteUrl}/propiedad/${property.id}`,
-      siteName: 'AlquilaNEA - Alquileres en Corrientes & Chaco',
+      siteName: 'AlquilaNEA',
+      locale: 'es_AR',
+      type: 'article',
       images: [
         {
           url: imageUrl,
+          secureUrl: imageUrl,
           width: 1200,
           height: 630,
           alt: property.titulo,
+          type: imageUrl.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
         },
       ],
-      type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
@@ -98,14 +105,13 @@ export default async function PropiedadDetallePage({ params }: PropiedadDetalleP
     'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
 
   const whatsappNumber = property.profiles?.whatsapp || '';
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://alquilanea.com.ar';
+  const siteUrl = getSiteUrl();
   const propertyUrl = `${siteUrl}/propiedad/${property.id}`;
   const whatsappLink = buildWhatsAppLink(
     whatsappNumber,
     property.titulo,
     property.precio_mensual,
-    propertyUrl,
-    mainImageUrl
+    propertyUrl
   );
 
   const ubicacionTexto = [

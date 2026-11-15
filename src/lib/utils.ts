@@ -13,12 +13,24 @@ export function formatCurrency(amount: number, currency: string = "ARS"): string
   }).format(amount);
 }
 
+export function getSiteUrl(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL && !process.env.NEXT_PUBLIC_SITE_URL.includes("localhost")) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  }
+  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "https://alquila-nea.vercel.app";
+}
+
 export function buildWhatsAppLink(
   phone: string,
   propertyTitle: string,
   propertyPrice: number,
-  propertyUrl: string,
-  imageUrl?: string
+  propertyUrl: string
 ): string {
   // Asegurar formato internacional de WhatsApp Argentina (código de país 549)
   let cleanPhone = phone.replace(/\D/g, "");
@@ -35,14 +47,10 @@ export function buildWhatsAppLink(
     `¡Hola! Me interesa tu publicación en *AlquilaNEA*:`,
     `🏠 *${propertyTitle}*`,
     `💰 *Precio:* ${formatCurrency(propertyPrice)} / mes`,
-    `🔗 *Ver publicación:* ${propertyUrl}`,
+    `¿Sigue disponible para coordinar una visita?`,
+    ``,
+    propertyUrl,
   ];
-
-  if (imageUrl) {
-    lines.push(`📸 *Foto portada:* ${imageUrl}`);
-  }
-
-  lines.push(`¿Sigue disponible para coordinar una visita?`);
 
   const message = encodeURIComponent(lines.join("\n"));
   return `https://wa.me/${cleanPhone}?text=${message}`;
