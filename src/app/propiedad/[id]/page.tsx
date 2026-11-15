@@ -20,6 +20,7 @@ import {
 import { getPropertyById } from '@/actions/properties';
 import { formatCurrency, buildWhatsAppLink } from '@/lib/utils';
 import { PropertyGallery } from '@/components/properties/property-gallery';
+import { TrackPropertyView } from '@/components/properties/track-view';
 
 interface PropiedadDetallePageProps {
   params: Promise<{ id: string }>;
@@ -50,6 +51,9 @@ export default async function PropiedadDetallePage({ params }: PropiedadDetalleP
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Contador de visitas en segundo plano */}
+      <TrackPropertyView propertyId={property.id} />
+
       {/* Botón Volver */}
       <Link
         href="/propiedades"

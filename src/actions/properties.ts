@@ -125,6 +125,38 @@ export async function getPropertyById(id: string): Promise<Propiedad | null> {
   }
 }
 
+export async function trackPropertyView(propertyId: string) {
+  try {
+    const supabase = await createClient();
+
+    // 1. Intentar llamar a la función RPC de postgres (Security Definer para saltar RLS anónimo)
+    const { error: rpcError } = await supabase.rpc('increment_visitas', {
+      prop_id: propertyId,
+    });
+
+    if (rpcError) {
+      // 2. Fallback: Actualización directa por consulta
+      const { data: prop } = await supabase
+        .from('propiedades')
+        .select('visitas_count')
+        .eq('id', propertyId)
+        .single();
+
+      if (prop) {
+        await supabase
+          .from('propiedades')
+          .update({ visitas_count: (prop.visitas_count || 0) + 1 })
+          .eq('id', propertyId);
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error tracking property view:', err);
+    return { success: false };
+  }
+}
+
 export interface CreatePropertyActionInput {
   provinciaId: number;
   localidadId: number;
