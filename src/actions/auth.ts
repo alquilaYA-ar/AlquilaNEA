@@ -88,8 +88,23 @@ export async function signIn(email: string, password: string) {
       return { success: false, error: error.message };
     }
 
+    let isAdmin = false;
+    if (data.user.email?.toLowerCase() === 'gonza18av@gmail.com') {
+      isAdmin = true;
+    } else {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('es_admin, tipo_anunciante')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profile && (profile.es_admin === true || (profile.tipo_anunciante as string) === 'admin')) {
+        isAdmin = true;
+      }
+    }
+
     revalidatePath('/', 'layout');
-    return { success: true, user: data.user };
+    return { success: true, user: data.user, isAdmin };
   } catch (err: any) {
     return { success: false, error: err.message || 'Error al iniciar sesión.' };
   }

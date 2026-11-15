@@ -1,16 +1,38 @@
 'use client';
 
-import { useState, useTransition, Suspense } from 'react';
+import { useState, useEffect, useTransition, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Building2, Mail, Lock, UserCheck, Phone, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
-import { signIn, signUp } from '@/actions/auth';
+import { signIn, signUp, getCurrentUser } from '@/actions/auth';
 
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') || '/publicar';
+  const explicitRedirect = searchParams.get('redirectTo');
   const isVerifiedParam = searchParams.get('verified') === 'true';
   const modeParam = searchParams.get('mode');
+
+  // Si ya tiene sesión activa, redirigir según su rol
+  useEffect(() => {
+    async function checkExistingUser() {
+      const { user, profile } = await getCurrentUser();
+      if (user) {
+        const isAdmin =
+          profile?.es_admin === true ||
+          (profile?.tipo_anunciante as string) === 'admin' ||
+          user.email?.toLowerCase() === 'gonza18av@gmail.com';
+
+        if (isAdmin) {
+          router.replace('/admin');
+        } else if (explicitRedirect) {
+          router.replace(explicitRedirect);
+        } else {
+          router.replace('/mis-publicaciones');
+        }
+      }
+    }
+    checkExistingUser();
+  }, [router, explicitRedirect]);
 
   // Por defecto abre en Modo Iniciar Sesión (Login)
   const [isRegister, setIsRegister] = useState(modeParam === 'register');
@@ -58,7 +80,11 @@ function LoginFormContent() {
           return;
         }
 
-        router.push(redirectTo);
+        if (explicitRedirect) {
+          router.push(explicitRedirect);
+        } else {
+          router.push('/mis-publicaciones');
+        }
         router.refresh();
       } else {
         const res = await signIn(email, password);
@@ -68,7 +94,14 @@ function LoginFormContent() {
           return;
         }
 
-        router.push(redirectTo);
+        // Si es Admin, SIEMPRE redirigir al panel de administración
+        if (res.isAdmin) {
+          router.push('/admin');
+        } else if (explicitRedirect) {
+          router.push(explicitRedirect);
+        } else {
+          router.push('/mis-publicaciones');
+        }
         router.refresh();
       }
     });

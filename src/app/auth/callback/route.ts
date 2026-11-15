@@ -7,15 +7,40 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type') as EmailOtpType | null;
-  const next = searchParams.get('next') ?? '/publicar';
+  const next = searchParams.get('next') ?? '/mis-publicaciones';
 
   const supabase = await createClient();
+
+  const getDestination = async (fallback: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return fallback;
+
+      if (user.email?.toLowerCase() === 'gonza18av@gmail.com') {
+        return '/admin';
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('es_admin, tipo_anunciante')
+        .eq('id', user.id)
+        .single();
+
+      if (profile && (profile.es_admin === true || (profile.tipo_anunciante as string) === 'admin')) {
+        return '/admin';
+      }
+    } catch (err) {
+      console.error('Error resolving user role in callback:', err);
+    }
+    return fallback;
+  };
 
   // 1. Soporte para flujo PKCE (con parámetro ?code=...)
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      const destination = await getDestination(next);
+      return NextResponse.redirect(`${origin}${destination}`);
     }
     console.error('Error exchanging code for session:', error.message);
   }
@@ -27,7 +52,8 @@ export async function GET(request: Request) {
       token_hash,
     });
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      const destination = await getDestination(next);
+      return NextResponse.redirect(`${origin}${destination}`);
     }
     console.error('Error verifying OTP token_hash:', error.message);
   }
@@ -35,7 +61,8 @@ export async function GET(request: Request) {
   // 3. Si ya hay una sesión activa, simplemente redirigir a destino
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
-    return NextResponse.redirect(`${origin}${next}`);
+    const destination = await getDestination(next);
+    return NextResponse.redirect(`${origin}${destination}`);
   }
 
   // Si falló el código o expiró, redirigir al login con mensaje amigable

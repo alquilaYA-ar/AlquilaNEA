@@ -81,6 +81,17 @@ export default function PublicarPage() {
         const { user, profile } = await getCurrentUser();
         setCurrentUser(user);
         setCurrentProfile(profile);
+
+        // Si es el Administrador, no publica inmuebles: redirigir a su panel
+        const isAdmin =
+          profile?.es_admin === true ||
+          (profile?.tipo_anunciante as string) === 'admin' ||
+          user?.email?.toLowerCase() === 'gonza18av@gmail.com';
+
+        if (isAdmin) {
+          router.replace('/admin');
+          return;
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -88,7 +99,7 @@ export default function PublicarPage() {
       }
     }
     checkAuth();
-  }, []);
+  }, [router]);
 
   // 2. Cargar Provincias
   useEffect(() => {
