@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Building2, PlusCircle } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { UserNav } from '@/components/layout/user-nav';
 
 export function Navbar() {
@@ -38,14 +38,6 @@ export function Navbar() {
           </Link>
           
           <UserNav />
-
-          <Link
-            href="/publicar"
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-xl shadow-sm hover:shadow transition"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Publicar Gratis</span>
-          </Link>
         </div>
       </div>
     </header>

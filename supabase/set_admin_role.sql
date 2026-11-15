@@ -23,3 +23,4 @@ WHERE email_contacto = 'gonza18av@gmail.com';
 SELECT id, nombre_completo, email_contacto, tipo_anunciante, es_admin 
 FROM public.profiles 
 WHERE email_contacto = 'gonza18av@gmail.com';
+
