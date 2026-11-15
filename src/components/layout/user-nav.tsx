@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, LogOut, UserCheck, Building2 } from 'lucide-react';
+import { User, LogOut, UserCheck, Building2, Shield } from 'lucide-react';
 import { getCurrentUser, signOut } from '@/actions/auth';
 import { Profile } from '@/types/database';
 
@@ -59,6 +59,14 @@ export function UserNav() {
         className="text-xs font-bold text-slate-700 hover:text-orange-600 transition px-2 py-1.5 hidden md:block"
       >
         Mis Avisos
+      </Link>
+
+      <Link
+        href="/admin"
+        className="p-2 text-slate-600 hover:text-orange-600 hover:bg-orange-50 transition rounded-lg"
+        title="Panel Administrador & Métricas"
+      >
+        <Shield className="w-4 h-4 text-slate-700 hover:text-orange-600" />
       </Link>
 
       <button

@@ -29,6 +29,13 @@ export function Navbar() {
           >
             Explorar Alquileres
           </Link>
+
+          <Link
+            href="/contacto"
+            className="text-sm font-semibold text-slate-600 hover:text-orange-600 transition px-3 py-2 hidden md:block"
+          >
+            Contacto
+          </Link>
           
           <UserNav />
 

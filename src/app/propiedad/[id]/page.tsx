@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getPropertyById } from '@/actions/properties';
 import { formatCurrency, buildWhatsAppLink } from '@/lib/utils';
+import { PropertyGallery } from '@/components/properties/property-gallery';
 
 interface PropiedadDetallePageProps {
   params: Promise<{ id: string }>;
@@ -122,38 +123,8 @@ export default async function PropiedadDetallePage({ params }: PropiedadDetalleP
         </div>
       </div>
 
-      {/* GALERÍA DE FOTOS */}
-      <div className="space-y-4">
-        <div className="relative aspect-[16/9] md:aspect-[21/9] w-full rounded-3xl overflow-hidden shadow-md bg-slate-100">
-          <Image
-            src={mainImageUrl}
-            alt={property.titulo}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-        </div>
-
-        {fotos.length > 1 && (
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-            {fotos.map((foto, idx) => (
-              <div
-                key={foto.id || idx}
-                className="relative aspect-[4/3] rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100"
-              >
-                <Image
-                  src={foto.storage_path}
-                  alt={`Foto ${idx + 1}`}
-                  fill
-                  sizes="20vw"
-                  className="object-cover hover:scale-105 transition"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* GALERÍA DE FOTOS INTERACTIVA CON LIGHTBOX */}
+      <PropertyGallery fotos={fotos} titulo={property.titulo} />
 
       {/* DETALLE Y CONTACTO (2 COLUMNAS) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
