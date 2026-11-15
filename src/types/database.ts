@@ -1,4 +1,4 @@
-export type TipoAnunciante = 'dueno_directo' | 'inmobiliaria';
+export type TipoAnunciante = 'admin' | 'dueno_directo' | 'inmobiliaria';
 export type TipoInmueble = 'departamento' | 'casa' | 'ph' | 'oficina' | 'local' | 'monoambiente';
 export type EstadoPropiedad = 'borrador' | 'activa' | 'pausada' | 'alquilada';
 export type Moneda = 'ARS' | 'USD';
@@ -32,6 +32,7 @@ export interface Barrio {
 export interface Profile {
   id: string;
   tipo_anunciante: TipoAnunciante;
+  es_admin?: boolean;
   nombre_completo: string;
   nombre_inmobiliaria?: string | null;
   matricula_inmobiliaria?: string | null;

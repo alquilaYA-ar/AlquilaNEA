@@ -38,6 +38,7 @@ export function UserNav() {
 
   const displayName = currentProfile?.nombre_inmobiliaria || currentProfile?.nombre_completo || 'Mi Cuenta';
   const isDuenoDirecto = currentProfile?.tipo_anunciante === 'dueno_directo';
+  const isAdmin = currentProfile?.es_admin === true || (currentProfile?.tipo_anunciante as string) === 'admin';
 
   return (
     <div className="flex items-center gap-2">
@@ -46,7 +47,9 @@ export function UserNav() {
         className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-xs font-semibold text-slate-800 transition"
         title="Ir a Mis Publicaciones"
       >
-        {isDuenoDirecto ? (
+        {isAdmin ? (
+          <Shield className="w-3.5 h-3.5 text-orange-600" />
+        ) : isDuenoDirecto ? (
           <UserCheck className="w-3.5 h-3.5 text-orange-600" />
         ) : (
           <Building2 className="w-3.5 h-3.5 text-blue-700" />
@@ -61,13 +64,16 @@ export function UserNav() {
         Mis Avisos
       </Link>
 
-      <Link
-        href="/admin"
-        className="p-2 text-slate-600 hover:text-orange-600 hover:bg-orange-50 transition rounded-lg"
-        title="Panel Administrador & Métricas"
-      >
-        <Shield className="w-4 h-4 text-slate-700 hover:text-orange-600" />
-      </Link>
+      {isAdmin && (
+        <Link
+          href="/admin"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-extrabold text-orange-700 bg-orange-100 hover:bg-orange-200/80 border border-orange-200 rounded-xl transition shadow-xs"
+          title="Panel Administrador Central"
+        >
+          <Shield className="w-3.5 h-3.5 text-orange-600" />
+          <span>Admin</span>
+        </Link>
+      )}
 
       <button
         onClick={handleSignOut}

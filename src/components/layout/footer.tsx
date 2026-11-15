@@ -90,11 +90,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/admin" className="hover:text-white transition text-slate-500">
-                  Panel de Métricas & Admin
-                </Link>
-              </li>
-              <li>
                 <span className="text-[11px] text-slate-500">Plan Freemium de lanzamiento en el NEA</span>
               </li>
             </ul>
