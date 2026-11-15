@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import {
   Bed,
@@ -26,6 +27,61 @@ interface PropiedadDetallePageProps {
   params: Promise<{ id: string }>;
 }
 
+export async function generateMetadata({ params }: PropiedadDetallePageProps): Promise<Metadata> {
+  const { id } = await params;
+  const property = await getPropertyById(id);
+
+  if (!property) {
+    return {
+      title: 'Propiedad no encontrada | AlquilaNEA',
+    };
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://alquilanea.com.ar';
+  const fotos = property.propiedad_fotos || [];
+  const portada = fotos.find((f) => f.es_portada) || fotos[0];
+  const imageUrl =
+    portada?.storage_path ||
+    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
+
+  const ubicacion = [
+    property.barrios?.nombre,
+    property.localidades?.nombre,
+    property.provincias?.nombre,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  const title = `${property.titulo} - ${formatCurrency(property.precio_mensual, property.moneda)} | AlquilaNEA`;
+  const description = `Alquiler en ${ubicacion}. ${property.ambientes} amb., ${property.dormitorios} dorm., ${property.banos} baños. Contacto directo por WhatsApp en AlquilaNEA.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `${siteUrl}/propiedad/${property.id}`,
+      siteName: 'AlquilaNEA - Alquileres en Corrientes & Chaco',
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: property.titulo,
+        },
+      ],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [imageUrl],
+    },
+  };
+}
+
 export default async function PropiedadDetallePage({ params }: PropiedadDetallePageProps) {
   const { id } = await params;
   const property = await getPropertyById(id);
@@ -37,11 +93,20 @@ export default async function PropiedadDetallePage({ params }: PropiedadDetalleP
   const isDuenoDirecto = property.profiles?.tipo_anunciante === 'dueno_directo';
   const fotos = property.propiedad_fotos || [];
   const portada = fotos.find((f) => f.es_portada) || fotos[0];
-  const mainImageUrl = portada?.storage_path || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
+  const mainImageUrl =
+    portada?.storage_path ||
+    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
 
   const whatsappNumber = property.profiles?.whatsapp || '';
-  const propertyUrl = `https://alquilanea.com.ar/propiedad/${property.id}`;
-  const whatsappLink = buildWhatsAppLink(whatsappNumber, property.titulo, property.precio_mensual, propertyUrl);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://alquilanea.com.ar';
+  const propertyUrl = `${siteUrl}/propiedad/${property.id}`;
+  const whatsappLink = buildWhatsAppLink(
+    whatsappNumber,
+    property.titulo,
+    property.precio_mensual,
+    propertyUrl,
+    mainImageUrl
+  );
 
   const ubicacionTexto = [
     property.barrios?.nombre,
