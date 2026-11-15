@@ -16,3 +16,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.increment_visitas(UUID) TO anon, authenticated, service_role;
+

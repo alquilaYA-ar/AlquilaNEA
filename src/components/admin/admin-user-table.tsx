@@ -311,3 +311,4 @@ export function AdminUserTable({ initialUsers, currentAdminId }: AdminUserTableP
     </div>
   );
 }
+

@@ -67,3 +67,4 @@ export function calculateMaxPhotos(features: PropertyPhotoFeatures): PhotoLimitR
     breakdown,
   };
 }
+
