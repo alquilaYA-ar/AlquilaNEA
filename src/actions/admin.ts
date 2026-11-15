@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 
 export interface AdminStats {
   totalUsers: number;
@@ -30,9 +31,10 @@ export interface AdminStats {
     id: string;
     nombre_completo: string;
     nombre_inmobiliaria: string | null;
-    tipo_anunciante: 'dueno_directo' | 'inmobiliaria';
+    tipo_anunciante: 'admin' | 'dueno_directo' | 'inmobiliaria';
     email_contacto: string;
     whatsapp: string;
+    suspendido: boolean;
     created_at: string;
     propiedadesCount: number;
   }[];
@@ -161,6 +163,7 @@ export async function getAdminStats(): Promise<AdminStats> {
       tipo_anunciante: prof.tipo_anunciante,
       email_contacto: prof.email_contacto,
       whatsapp: prof.whatsapp,
+      suspendido: Boolean(prof.suspendido),
       created_at: prof.created_at,
       propiedadesCount: propsByUser[prof.id] || 0,
     }));
@@ -213,6 +216,95 @@ export async function getAdminStats(): Promise<AdminStats> {
       users: [],
       topVisitedProperties: [],
     };
+  }
+}
+
+export async function toggleSuspendUser(userId: string, suspend: boolean) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No autenticado.');
+
+    // Verificar permisos de admin
+    const { data: adminProf } = await supabase
+      .from('profiles')
+      .select('es_admin, tipo_anunciante')
+      .eq('id', user.id)
+      .single();
+
+    if (!adminProf?.es_admin && adminProf?.tipo_anunciante !== 'admin') {
+      throw new Error('Permisos insuficientes. Solo administradores.');
+    }
+
+    if (userId === user.id) {
+      throw new Error('No puedes suspender tu propia cuenta de administrador.');
+    }
+
+    // Actualizar estado del perfil
+    const { error: profErr } = await supabase
+      .from('profiles')
+      .update({ suspendido: suspend })
+      .eq('id', userId);
+
+    if (profErr) throw new Error(profErr.message);
+
+    // Si se suspende al usuario, se pausan automáticamente todas sus publicaciones
+    // Si se reactiva, se vuelven a activar
+    const nuevoEstado = suspend ? 'pausada' : 'activa';
+    const { error: propErr } = await supabase
+      .from('propiedades')
+      .update({ estado: nuevoEstado })
+      .eq('anunciante_id', userId);
+
+    if (propErr) {
+      console.error('Error al actualizar publicaciones del usuario suspendido:', propErr);
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/propiedades');
+    revalidatePath('/');
+    return { success: true };
+  } catch (err: any) {
+    console.error('toggleSuspendUser error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deleteUserByAdmin(userId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No autenticado.');
+
+    // Verificar permisos
+    const { data: adminProf } = await supabase
+      .from('profiles')
+      .select('es_admin, tipo_anunciante')
+      .eq('id', user.id)
+      .single();
+
+    if (!adminProf?.es_admin && adminProf?.tipo_anunciante !== 'admin') {
+      throw new Error('Permisos insuficientes. Solo administradores.');
+    }
+
+    if (userId === user.id) {
+      throw new Error('No puedes eliminar tu propia cuenta de administrador.');
+    }
+
+    // 1. Eliminar publicaciones del usuario (fotos asociadas se eliminan en cascada)
+    await supabase.from('propiedades').delete().eq('anunciante_id', userId);
+
+    // 2. Eliminar el perfil del usuario
+    const { error: delErr } = await supabase.from('profiles').delete().eq('id', userId);
+    if (delErr) throw new Error(delErr.message);
+
+    revalidatePath('/admin');
+    revalidatePath('/propiedades');
+    revalidatePath('/');
+    return { success: true };
+  } catch (err: any) {
+    console.error('deleteUserByAdmin error:', err);
+    return { success: false, error: err.message };
   }
 }
 

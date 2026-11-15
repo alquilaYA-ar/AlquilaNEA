@@ -21,6 +21,7 @@ import {
 import { Provincia, Localidad, Barrio, Profile } from '@/types/database';
 import { getProvincias, getLocalidades, getBarrios } from '@/actions/locations';
 import { createProperty } from '@/actions/properties';
+import { calculateMaxPhotos } from '@/lib/photo-limits';
 import { getCurrentUser } from '@/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 
@@ -129,13 +130,33 @@ export default function PublicarPage() {
     loadBars();
   }, [formData.localidadId]);
 
-  // Manejo de Fotos Locales
+  // Cálculo dinámico de cupo de fotos según ambientes, cochera, terraza, etc.
+  const photoLimit = calculateMaxPhotos({
+    ambientes: formData.ambientes,
+    cochera: formData.cochera,
+    terrazaBalcon: formData.terrazaBalcon,
+    patio: formData.patio,
+    pileta: formData.pileta,
+  });
+
+  // Manejo de Fotos Locales con validación estricta de cupo
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
-    setSelectedFiles((prev) => [...prev, ...files]);
+    const availableSlots = photoLimit.maxPhotos - selectedFiles.length;
 
-    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    if (availableSlots <= 0) {
+      alert(`Has alcanzado el límite máximo de ${photoLimit.maxPhotos} fotos para las características de este inmueble.`);
+      return;
+    }
+
+    const filesToAdd = files.slice(0, availableSlots);
+    if (files.length > availableSlots) {
+      alert(`Solo se agregaron ${availableSlots} foto(s) para no exceder el cupo máximo permitido (${photoLimit.maxPhotos} fotos).`);
+    }
+
+    setSelectedFiles((prev) => [...prev, ...filesToAdd]);
+    const newPreviews = filesToAdd.map((file) => URL.createObjectURL(file));
     setPreviewUrls((prev) => [...prev, ...newPreviews]);
   };
 
@@ -664,6 +685,25 @@ export default function PublicarPage() {
               <ImageIcon className="w-5 h-5 text-orange-600" />
               <span>3. Fotografías del Inmueble</span>
             </h3>
+
+            {/* CUPO DINÁMICO DE FOTOS SEGÚN CARACTERÍSTICAS */}
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-2xl space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="text-xs font-bold text-orange-950 uppercase tracking-wider">
+                  Cupo de Fotos para este Inmueble
+                </span>
+                <span className="px-3 py-1 bg-orange-600 text-white rounded-lg text-xs font-black shadow-xs self-start sm:self-auto">
+                  {selectedFiles.length} de {photoLimit.maxPhotos} fotos (máx. 10)
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold text-orange-800">
+                {photoLimit.breakdown.map((item, i) => (
+                  <span key={i} className="px-2 py-0.5 bg-white rounded-md border border-orange-200">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
 
             {/* ZONA DE SUBIDA REAL DE FOTOS */}
             <div>

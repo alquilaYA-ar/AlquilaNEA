@@ -33,6 +33,7 @@ export interface Profile {
   id: string;
   tipo_anunciante: TipoAnunciante;
   es_admin?: boolean;
+  suspendido?: boolean;
   nombre_completo: string;
   nombre_inmobiliaria?: string | null;
   matricula_inmobiliaria?: string | null;

@@ -10,8 +10,10 @@ function LoginFormContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') || '/publicar';
   const isVerifiedParam = searchParams.get('verified') === 'true';
+  const modeParam = searchParams.get('mode');
 
-  const [isRegister, setIsRegister] = useState(!isVerifiedParam);
+  // Por defecto abre en Modo Iniciar Sesión (Login)
+  const [isRegister, setIsRegister] = useState(modeParam === 'register');
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState<string | null>(null);

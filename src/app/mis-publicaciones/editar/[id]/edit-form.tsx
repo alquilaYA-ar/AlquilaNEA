@@ -26,6 +26,7 @@ import {
   setCoverPhoto,
 } from '@/actions/properties';
 import { createClient } from '@/lib/supabase/client';
+import { calculateMaxPhotos } from '@/lib/photo-limits';
 
 interface EditPropertyFormProps {
   property: Propiedad;
@@ -79,13 +80,35 @@ export function EditPropertyForm({ property }: EditPropertyFormProps) {
   // GESTIÓN DE FOTOGRAFÍAS
   // ==========================================
 
-  // Manejar selección de archivos nuevos
+  // Cupo dinámico de fotos según ambientes, cochera, terraza, etc.
+  const photoLimit = calculateMaxPhotos({
+    ambientes: formData.ambientes,
+    cochera: formData.cochera,
+    terrazaBalcon: formData.terrazaBalcon,
+    patio: formData.patio,
+    pileta: formData.pileta,
+  });
+
+  const totalCurrentPhotos = photos.length + newFiles.length;
+
+  // Manejar selección de archivos nuevos con cupo dinámico
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
-    setNewFiles((prev) => [...prev, ...files]);
+    const availableSlots = photoLimit.maxPhotos - (photos.length + newFiles.length);
 
-    const previews = files.map((file) => URL.createObjectURL(file));
+    if (availableSlots <= 0) {
+      alert(`Has alcanzado el límite máximo de ${photoLimit.maxPhotos} fotos para las características de este inmueble.`);
+      return;
+    }
+
+    const filesToAdd = files.slice(0, availableSlots);
+    if (files.length > availableSlots) {
+      alert(`Solo se agregaron ${availableSlots} foto(s) para no exceder el cupo máximo permitido (${photoLimit.maxPhotos} fotos).`);
+    }
+
+    setNewFiles((prev) => [...prev, ...filesToAdd]);
+    const previews = filesToAdd.map((file) => URL.createObjectURL(file));
     setNewPreviews((prev) => [...prev, ...previews]);
   };
 
@@ -327,6 +350,25 @@ export function EditPropertyForm({ property }: EditPropertyFormProps) {
                 Puedes cambiar la foto de portada, eliminar fotos o agregar nuevas imágenes.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* CUPO DINÁMICO DE FOTOS */}
+        <div className="p-4 bg-orange-50 border border-orange-200 rounded-2xl space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span className="text-xs font-bold text-orange-950 uppercase tracking-wider">
+              Cupo de Fotos para este Inmueble
+            </span>
+            <span className="px-3 py-1 bg-orange-600 text-white rounded-lg text-xs font-black shadow-xs self-start sm:self-auto">
+              {totalCurrentPhotos} de {photoLimit.maxPhotos} fotos (máx. 10)
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold text-orange-800">
+            {photoLimit.breakdown.map((item, i) => (
+              <span key={i} className="px-2 py-0.5 bg-white rounded-md border border-orange-200">
+                {item}
+              </span>
+            ))}
           </div>
         </div>
 
