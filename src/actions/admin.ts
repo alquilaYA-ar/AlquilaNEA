@@ -246,7 +246,14 @@ export async function toggleSuspendUser(userId: string, suspend: boolean) {
       .update({ suspendido: suspend })
       .eq('id', userId);
 
-    if (profErr) throw new Error(profErr.message);
+    if (profErr) {
+      if (profErr.message.includes('suspendido')) {
+        throw new Error(
+          'Falta agregar la columna "suspendido" en Supabase. Ejecuta: ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS suspendido BOOLEAN DEFAULT FALSE;'
+        );
+      }
+      throw new Error(profErr.message);
+    }
 
     // Si se suspende al usuario, se pausan automáticamente todas sus publicaciones
     // Si se reactiva, se vuelven a activar
