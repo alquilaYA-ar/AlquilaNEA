@@ -25,6 +25,7 @@ yarn-error.log*
 
 # local env files
 .env
+.env.*
 .env*.local
 .env.development
 .env.test
@@ -41,6 +42,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# database scripts (keep local only)
+# database scripts and sensitive/backup files (keep local only)
 *.sql
+*.log
+*.key
+*.p12
+*.crt
+*.bak
 
