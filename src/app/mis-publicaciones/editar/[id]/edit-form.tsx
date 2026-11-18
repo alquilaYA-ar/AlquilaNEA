@@ -26,7 +26,7 @@ import {
   setCoverPhoto,
 } from '@/actions/properties';
 import { createClient } from '@/lib/supabase/client';
-import { calculateMaxPhotos } from '@/lib/photo-limits';
+import { calculateMaxPhotos, filterValidImages, buildStoragePath } from '@/lib/photo-limits';
 
 interface EditPropertyFormProps {
   property: Propiedad;
@@ -94,7 +94,10 @@ export function EditPropertyForm({ property }: EditPropertyFormProps) {
   // Manejar selección de archivos nuevos con cupo dinámico
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    const files = Array.from(e.target.files);
+    const { valid: files, error: fileError } = filterValidImages(Array.from(e.target.files));
+    e.target.value = '';
+    if (fileError) alert(fileError);
+    if (files.length === 0) return;
     const availableSlots = photoLimit.maxPhotos - (photos.length + newFiles.length);
 
     if (availableSlots <= 0) {
@@ -127,20 +130,20 @@ export function EditPropertyForm({ property }: EditPropertyFormProps) {
     try {
       const supabase = createClient();
       const uploadedUrls: string[] = [];
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) throw new Error('Tu sesión expiró. Volvé a iniciar sesión.');
 
       for (let i = 0; i < newFiles.length; i++) {
         const file = newFiles[i];
         setUploadProgress(`Subiendo foto ${i + 1} de ${newFiles.length}...`);
 
-        const fileExt = file.name.split('.').pop() || 'jpg';
-        const cleanName = file.name.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20);
-        const fileName = `${Date.now()}_${cleanName}.${fileExt}`;
+        const fileName = buildStoragePath(authUser.id, file, i);
 
         const { error: uploadError } = await supabase.storage
           .from('properties')
           .upload(fileName, file, {
             cacheControl: '3600',
-            upsert: true,
+            upsert: false,
           });
 
         if (uploadError) {
@@ -452,7 +455,7 @@ export function EditPropertyForm({ property }: EditPropertyFormProps) {
             <input
               type="file"
               multiple
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               onChange={handleFileChange}
               disabled={uploadingPhotos}
               className="hidden"
@@ -542,6 +545,7 @@ export function EditPropertyForm({ property }: EditPropertyFormProps) {
               type="text"
               required
               value={formData.titulo}
+                maxLength={160}
               onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium"
             />
@@ -652,6 +656,7 @@ export function EditPropertyForm({ property }: EditPropertyFormProps) {
                   required
                   min={1}
                   value={formData.precioMensual}
+                max={1000000000}
                   onChange={(e) => setFormData({ ...formData, precioMensual: e.target.value })}
                   className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-3.5 py-2.5 text-base font-bold text-slate-900 focus:ring-2 focus:ring-orange-500"
                 />
@@ -690,6 +695,7 @@ export function EditPropertyForm({ property }: EditPropertyFormProps) {
                   type="number"
                   placeholder="Monto de expensas extra (ARS)"
                   value={formData.expensasMonto}
+                max={100000000}
                   onChange={(e) => setFormData({ ...formData, expensasMonto: e.target.value })}
                   className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
                 />
@@ -770,6 +776,7 @@ export function EditPropertyForm({ property }: EditPropertyFormProps) {
             rows={5}
             required
             value={formData.descripcion}
+                maxLength={3000}
             onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm"
           ></textarea>

@@ -14,10 +14,12 @@ import {
   Sparkles,
   Phone,
 } from 'lucide-react';
+import { submitContactMessage } from '@/actions/contact';
 
 export default function ContactoPage() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -25,6 +27,7 @@ export default function ContactoPage() {
     telefono: '',
     motivo: 'soporte',
     mensaje: '',
+    website: '',
   });
 
   const officialWhatsApp = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '5493794123456';
@@ -34,15 +37,19 @@ export default function ContactoPage() {
     'Hola equipo de Soporte de AlquilaNEA! Me contacto desde la web para realizar una consulta.'
   )}`;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
 
-    // Simular envío rápido de mensaje de contacto
-    setTimeout(() => {
-      setLoading(false);
-      setFormSubmitted(true);
-    }, 600);
+    const res = await submitContactMessage(formData);
+    setLoading(false);
+
+    if (!res.success) {
+      setErrorMessage(res.error || 'No se pudo enviar el mensaje.');
+      return;
+    }
+    setFormSubmitted(true);
   };
 
   return (
@@ -160,6 +167,7 @@ export default function ContactoPage() {
                     telefono: '',
                     motivo: 'soporte',
                     mensaje: '',
+                    website: '',
                   });
                 }}
                 className="text-xs font-bold text-emerald-800 hover:underline pt-2"
@@ -177,6 +185,9 @@ export default function ContactoPage() {
                   <input
                     type="text"
                     required
+                    minLength={2}
+                    maxLength={100}
+                    autoComplete="name"
                     placeholder="Ej: Marcelo Gómez"
                     value={formData.nombre}
                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
@@ -191,6 +202,8 @@ export default function ContactoPage() {
                   <input
                     type="email"
                     required
+                    maxLength={150}
+                    autoComplete="email"
                     placeholder="ejemplo@correo.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -206,6 +219,10 @@ export default function ContactoPage() {
                   </label>
                   <input
                     type="tel"
+                    inputMode="tel"
+                    maxLength={30}
+                    title="Solo números (8 a 15 dígitos)"
+                    autoComplete="tel"
                     placeholder="Ej: 3794112233"
                     value={formData.telefono}
                     onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
@@ -237,12 +254,35 @@ export default function ContactoPage() {
                 <textarea
                   rows={4}
                   required
+                  minLength={10}
+                  maxLength={2000}
                   placeholder="Detállanos en qué podemos ayudarte..."
                   value={formData.mensaje}
                   onChange={(e) => setFormData({ ...formData, mensaje: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm"
                 ></textarea>
+                <p className="text-[11px] text-slate-400 text-right mt-1">{formData.mensaje.length}/2000</p>
               </div>
+
+              {/* Campo trampa anti-bots (invisible para personas) */}
+              <div className="hidden" aria-hidden="true">
+                <label>
+                  No completar este campo
+                  <input
+                    type="text"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={formData.website}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  />
+                </label>
+              </div>
+
+              {errorMessage && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl" role="alert">
+                  {errorMessage}
+                </div>
+              )}
 
               <button
                 type="submit"

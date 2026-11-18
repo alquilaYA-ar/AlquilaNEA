@@ -21,7 +21,7 @@ import {
 import { Provincia, Localidad, Barrio, Profile } from '@/types/database';
 import { getProvincias, getLocalidades, getBarrios } from '@/actions/locations';
 import { createProperty } from '@/actions/properties';
-import { calculateMaxPhotos } from '@/lib/photo-limits';
+import { calculateMaxPhotos, filterValidImages, buildStoragePath } from '@/lib/photo-limits';
 import { getCurrentUser } from '@/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 
@@ -84,9 +84,7 @@ export default function PublicarPage() {
 
         // Si es el Administrador, no publica inmuebles: redirigir a su panel
         const isAdmin =
-          profile?.es_admin === true ||
-          (profile?.tipo_anunciante as string) === 'admin' ||
-          user?.email?.toLowerCase() === 'gonza18av@gmail.com';
+          profile?.es_admin === true || (profile?.tipo_anunciante as string) === 'admin';
 
         if (isAdmin) {
           router.replace('/admin');
@@ -153,7 +151,10 @@ export default function PublicarPage() {
   // Manejo de Fotos Locales con validación estricta de cupo
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    const files = Array.from(e.target.files);
+    const { valid: files, error: fileError } = filterValidImages(Array.from(e.target.files));
+    e.target.value = '';
+    if (fileError) alert(fileError);
+    if (files.length === 0) return;
     const availableSlots = photoLimit.maxPhotos - selectedFiles.length;
 
     if (availableSlots <= 0) {
@@ -192,15 +193,13 @@ export default function PublicarPage() {
           const file = selectedFiles[i];
           setUploadProgress(`Subiendo foto ${i + 1} de ${selectedFiles.length}...`);
 
-          const fileExt = file.name.split('.').pop() || 'jpg';
-          const cleanName = file.name.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20);
-          const fileName = `${Date.now()}_${cleanName}.${fileExt}`;
+          const fileName = buildStoragePath(currentUser.id, file, i);
 
           const { error: uploadError } = await supabase.storage
             .from('properties')
             .upload(fileName, file, {
               cacheControl: '3600',
-              upsert: true,
+              upsert: false,
             });
 
           if (uploadError) {
@@ -473,6 +472,7 @@ export default function PublicarPage() {
                 type="text"
                 placeholder="Ej: Junín al 900 o Av. Sarmiento 1200"
                 value={formData.direccionCalle}
+                maxLength={200}
                 onChange={(e) => setFormData({ ...formData, direccionCalle: e.target.value })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm"
               />
@@ -507,6 +507,7 @@ export default function PublicarPage() {
                 required
                 placeholder="Ej: Departamento 2 ambientes luminoso en Camba Cuá"
                 value={formData.titulo}
+                maxLength={160}
                 onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm"
               />
@@ -570,6 +571,7 @@ export default function PublicarPage() {
                   required
                   placeholder="350000"
                   value={formData.precioMensual}
+                max={1000000000}
                   onChange={(e) => setFormData({ ...formData, precioMensual: e.target.value })}
                   className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900"
                 />
@@ -594,6 +596,7 @@ export default function PublicarPage() {
                       type="number"
                       placeholder="Monto de expensas extra (ARS)"
                       value={formData.expensasMonto}
+                max={100000000}
                       onChange={(e) => setFormData({ ...formData, expensasMonto: e.target.value })}
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
                     />
@@ -665,6 +668,7 @@ export default function PublicarPage() {
                 required
                 placeholder="Describí los detalles del inmueble, requisitos de ingreso, condiciones del contrato..."
                 value={formData.descripcion}
+                maxLength={3000}
                 onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm"
               ></textarea>
@@ -722,7 +726,7 @@ export default function PublicarPage() {
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handleFileChange}
                 className="hidden"
               />

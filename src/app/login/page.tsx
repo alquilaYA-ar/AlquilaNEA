@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useTransition, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Building2, Mail, Lock, UserCheck, Phone, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { Building2, Mail, Lock, UserCheck, Phone, CheckCircle2, Loader2, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { signIn, signUp, getCurrentUser } from '@/actions/auth';
 
 function LoginFormContent() {
@@ -23,9 +24,7 @@ function LoginFormContent() {
       const { user, profile } = await getCurrentUser();
       if (user) {
         const isAdmin =
-          profile?.es_admin === true ||
-          (profile?.tipo_anunciante as string) === 'admin' ||
-          user.email?.toLowerCase() === 'gonza18av@gmail.com';
+          profile?.es_admin === true || (profile?.tipo_anunciante as string) === 'admin';
 
         if (isAdmin) {
           router.replace('/admin');
@@ -53,6 +52,7 @@ function LoginFormContent() {
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +95,11 @@ function LoginFormContent() {
         const res = await signIn(email, password);
 
         if (!res.success) {
-          setErrorMessage('Correo o contraseña incorrectos.');
+          setErrorMessage(
+            res.error && (res.error.includes('suspendida') || res.error.includes('válido') || res.error.includes('obligatoria'))
+              ? res.error
+              : 'Correo o contraseña incorrectos.'
+          );
           return;
         }
 
@@ -242,6 +246,7 @@ function LoginFormContent() {
                     </label>
                     <input
                       type="text"
+                      maxLength={50}
                       placeholder="Ej: CPI-4821"
                       value={matriculaInmobiliaria}
                       onChange={(e) => setMatriculaInmobiliaria(e.target.value)}
@@ -259,6 +264,9 @@ function LoginFormContent() {
                 <input
                   type="text"
                   required
+                  minLength={2}
+                  maxLength={100}
+                  autoComplete="name"
                   placeholder="Ej: Carlos Romero"
                   value={nombreCompleto}
                   onChange={(e) => setNombreCompleto(e.target.value)}
@@ -274,7 +282,11 @@ function LoginFormContent() {
                 <div className="relative">
                   <input
                     type="tel"
+                    inputMode="tel"
                     required
+                    minLength={8}
+                    maxLength={30}
+                    autoComplete="tel"
                     placeholder="Ej: 3794123456 o 3624889900"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
@@ -298,6 +310,9 @@ function LoginFormContent() {
               <input
                 type="email"
                 required
+                maxLength={150}
+                autoComplete="email"
+                inputMode="email"
                 placeholder="tu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -314,17 +329,43 @@ function LoginFormContent() {
             </label>
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
-                minLength={6}
-                placeholder="Mínimo 6 caracteres"
+                minLength={isRegister ? 8 : 1}
+                maxLength={72}
+                autoComplete={isRegister ? 'new-password' : 'current-password'}
+                placeholder={isRegister ? 'Mínimo 8 caracteres, con letras y números' : 'Tu contraseña'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm pr-9"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm pr-10"
               />
-              <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
+
+          {!isRegister && (
+            <div className="text-right -mt-2">
+              <Link href="/recuperar" className="text-xs font-semibold text-orange-600 hover:underline">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
+          )}
+
+          {isRegister && (
+            <p className="text-[11px] text-slate-500 -mt-2">
+              Al registrarte aceptás los{' '}
+              <Link href="/terminos" className="underline hover:text-orange-600">Términos y Condiciones</Link> y la{' '}
+              <Link href="/privacidad" className="underline hover:text-orange-600">Política de Privacidad</Link>.
+            </p>
+          )}
 
           {/* Botón Submit */}
           <button

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Profile } from '@/types/database';
 import { revalidatePath } from 'next/cache';
 import { getSiteUrl } from '@/lib/utils';
+import { signUpSchema, signInSchema, emailSchema, passwordSchema, firstZodError } from '@/lib/validations/auth';
 
 export interface SignUpInput {
   email: string;
@@ -16,8 +17,14 @@ export interface SignUpInput {
   telefono?: string;
 }
 
-export async function signUp(input: SignUpInput) {
+export async function signUp(rawInput: SignUpInput) {
   try {
+    const parsed = signUpSchema.safeParse(rawInput);
+    if (!parsed.success) {
+      return { success: false, error: firstZodError(parsed.error) };
+    }
+    const input = parsed.data;
+
     const supabase = await createClient();
     const siteUrl = getSiteUrl();
 
@@ -44,23 +51,7 @@ export async function signUp(input: SignUpInput) {
     // Si Supabase tiene verificación de correo activada, session será null hasta que confirme
     const requiresVerification = !data.session;
 
-    // Asegurar que el perfil quede insertado/actualizado en public.profiles
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: data.user.id,
-        nombre_completo: input.nombreCompleto,
-        whatsapp: input.whatsapp,
-        email_contacto: input.email,
-        tipo_anunciante: input.tipoAnunciante,
-        nombre_inmobiliaria: input.nombreInmobiliaria || null,
-        matricula_inmobiliaria: input.matriculaInmobiliaria || null,
-        telefono: input.telefono || null,
-      });
-
-      if (profileError) {
-        console.error('Error al asegurar perfil:', profileError);
-      }
-    }
+    // El perfil lo crea el trigger handle_new_user de la base de datos (con rol validado).
 
     revalidatePath('/', 'layout');
     return {
@@ -75,8 +66,14 @@ export async function signUp(input: SignUpInput) {
   }
 }
 
-export async function signIn(email: string, password: string) {
+export async function signIn(rawEmail: string, rawPassword: string) {
   try {
+    const parsedIn = signInSchema.safeParse({ email: rawEmail, password: rawPassword });
+    if (!parsedIn.success) {
+      return { success: false, error: firstZodError(parsedIn.error), isAdmin: false };
+    }
+    const { email, password } = parsedIn.data;
+
     const supabase = await createClient();
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -85,22 +82,22 @@ export async function signIn(email: string, password: string) {
     });
 
     if (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error.message, isAdmin: false };
     }
 
     let isAdmin = false;
-    if (data.user.email?.toLowerCase() === 'gonza18av@gmail.com') {
-      isAdmin = true;
-    } else {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('es_admin, tipo_anunciante')
-        .eq('id', data.user.id)
-        .single();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('es_admin, tipo_anunciante, suspendido')
+      .eq('id', data.user.id)
+      .single();
 
-      if (profile && (profile.es_admin === true || (profile.tipo_anunciante as string) === 'admin')) {
-        isAdmin = true;
-      }
+    if (profile?.suspendido) {
+      await supabase.auth.signOut();
+      return { success: false, error: 'Tu cuenta está suspendida. Contactá a soporte.', isAdmin: false };
+    }
+    if (profile && (profile.es_admin === true || (profile.tipo_anunciante as string) === 'admin')) {
+      isAdmin = true;
     }
 
     revalidatePath('/', 'layout');
@@ -155,3 +152,43 @@ export async function getCurrentUser(): Promise<{ user: any; profile: Profile | 
   }
 }
 
+
+export async function requestPasswordReset(rawEmail: string) {
+  try {
+    const parsed = emailSchema.safeParse(rawEmail);
+    if (!parsed.success) {
+      return { success: false, error: firstZodError(parsed.error) };
+    }
+    const supabase = await createClient();
+    const siteUrl = getSiteUrl();
+    // Respuesta siempre genérica: no revelamos si el correo existe o no (anti-enumeración)
+    await supabase.auth.resetPasswordForEmail(parsed.data, {
+      redirectTo: `${siteUrl}/auth/callback?next=/nueva-clave`,
+    });
+    return { success: true };
+  } catch (err) {
+    console.error('requestPasswordReset error:', err);
+    return { success: true };
+  }
+}
+
+export async function updatePassword(rawPassword: string) {
+  try {
+    const parsed = passwordSchema.safeParse(rawPassword);
+    if (!parsed.success) {
+      return { success: false, error: firstZodError(parsed.error) };
+    }
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'El enlace expiró. Solicitá uno nuevo.' };
+    }
+    const { error } = await supabase.auth.updateUser({ password: parsed.data });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'No se pudo actualizar la contraseña.' };
+  }
+}

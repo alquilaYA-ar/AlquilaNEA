@@ -21,6 +21,7 @@ import {
 import { AdminStats, getAdminStats } from '@/actions/admin';
 import { formatCurrency } from '@/lib/utils';
 import { AdminUserTable } from '@/components/admin/admin-user-table';
+import { AdminContactMessages } from '@/components/admin/admin-contact-messages';
 import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/types/database';
 
@@ -377,6 +378,9 @@ export function AdminRealtimeDashboard({
           </div>
         </div>
       </div>
+
+      {/* BUZÓN DE MENSAJES DEL FORMULARIO DE CONTACTO */}
+      <AdminContactMessages />
 
       {/* GESTIÓN DE USUARIOS CON ACCIÓN DE SUSPENDER / ELIMINAR */}
       <AdminUserTable initialUsers={stats.users} currentAdminId={adminId} />

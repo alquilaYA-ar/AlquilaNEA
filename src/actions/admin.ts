@@ -221,6 +221,9 @@ export async function getAdminStats(): Promise<AdminStats> {
 
 export async function toggleSuspendUser(userId: string, suspend: boolean) {
   try {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+      throw new Error('Identificador de usuario inválido.');
+    }
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado.');
@@ -277,33 +280,42 @@ export async function toggleSuspendUser(userId: string, suspend: boolean) {
   }
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function requireAdmin() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No autenticado.');
+
+  const { data: adminProf } = await supabase
+    .from('profiles')
+    .select('es_admin, tipo_anunciante')
+    .eq('id', user.id)
+    .single();
+
+  if (!adminProf?.es_admin && adminProf?.tipo_anunciante !== 'admin') {
+    throw new Error('Permisos insuficientes. Solo administradores.');
+  }
+  return { supabase, user };
+}
+
 export async function deleteUserByAdmin(userId: string) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No autenticado.');
-
-    // Verificar permisos
-    const { data: adminProf } = await supabase
-      .from('profiles')
-      .select('es_admin, tipo_anunciante')
-      .eq('id', user.id)
-      .single();
-
-    if (!adminProf?.es_admin && adminProf?.tipo_anunciante !== 'admin') {
-      throw new Error('Permisos insuficientes. Solo administradores.');
-    }
+    if (!UUID_RE.test(userId)) throw new Error('Identificador de usuario inválido.');
+    const { supabase, user } = await requireAdmin();
 
     if (userId === user.id) {
       throw new Error('No puedes eliminar tu propia cuenta de administrador.');
     }
 
-    // 1. Eliminar publicaciones del usuario (fotos asociadas se eliminan en cascada)
-    await supabase.from('propiedades').delete().eq('anunciante_id', userId);
-
-    // 2. Eliminar el perfil del usuario
-    const { error: delErr } = await supabase.from('profiles').delete().eq('id', userId);
-    if (delErr) throw new Error(delErr.message);
+    // Borra auth.users (y en cascada perfil, publicaciones y fotos) con una función segura de la BD
+    const { error: rpcErr } = await supabase.rpc('admin_delete_user', { target_user: userId });
+    if (rpcErr) {
+      if (rpcErr.message.includes('admin_delete_user')) {
+        throw new Error('Falta ejecutar supabase/security_hardening.sql en Supabase (función admin_delete_user).');
+      }
+      throw new Error(rpcErr.message);
+    }
 
     revalidatePath('/admin');
     revalidatePath('/propiedades');
@@ -315,3 +327,61 @@ export async function deleteUserByAdmin(userId: string) {
   }
 }
 
+// ----------------------------------------------------------------------------
+// Mensajes del formulario de contacto (solo administrador)
+// ----------------------------------------------------------------------------
+export interface ContactMessage {
+  id: string;
+  nombre: string;
+  email: string;
+  telefono: string | null;
+  motivo: 'soporte' | 'inmobiliaria' | 'denuncia' | 'sugerencia';
+  mensaje: string;
+  leido: boolean;
+  created_at: string;
+}
+
+export async function getContactMessages(): Promise<{ success: boolean; messages: ContactMessage[]; error?: string }> {
+  try {
+    const { supabase } = await requireAdmin();
+    const { data, error } = await supabase
+      .from('mensajes_contacto')
+      .select('id, nombre, email, telefono, motivo, mensaje, leido, created_at')
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error) {
+      if (error.message.includes('mensajes_contacto')) {
+        return { success: false, messages: [], error: 'Falta ejecutar supabase/security_hardening.sql en Supabase.' };
+      }
+      throw new Error(error.message);
+    }
+    return { success: true, messages: (data || []) as ContactMessage[] };
+  } catch (err: any) {
+    return { success: false, messages: [], error: err.message };
+  }
+}
+
+export async function setContactMessageRead(id: string, leido: boolean) {
+  try {
+    if (!UUID_RE.test(id)) throw new Error('Identificador inválido.');
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase.from('mensajes_contacto').update({ leido }).eq('id', id);
+    if (error) throw new Error(error.message);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deleteContactMessage(id: string) {
+  try {
+    if (!UUID_RE.test(id)) throw new Error('Identificador inválido.');
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase.from('mensajes_contacto').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}

@@ -68,3 +68,33 @@ export function calculateMaxPhotos(features: PropertyPhotoFeatures): PhotoLimitR
   };
 }
 
+
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+export const ALLOWED_IMAGE_TYPES: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+
+/** Filtra archivos no permitidos (tipo o tamaño) y devuelve los válidos + un mensaje de error. */
+export function filterValidImages(files: File[]): { valid: File[]; error: string | null } {
+  const valid: File[] = [];
+  const problems: string[] = [];
+  for (const f of files) {
+    if (!ALLOWED_IMAGE_TYPES[f.type]) {
+      problems.push(`"${f.name}" no es JPG, PNG o WEBP`);
+    } else if (f.size > MAX_IMAGE_BYTES) {
+      problems.push(`"${f.name}" supera los 5 MB`);
+    } else {
+      valid.push(f);
+    }
+  }
+  return { valid, error: problems.length ? `Se omitieron archivos: ${problems.join('; ')}.` : null };
+}
+
+/** Nombre seguro de archivo dentro de la carpeta del usuario (<uid>/<ts>_<rand>.<ext>). */
+export function buildStoragePath(userId: string, file: File, index: number): string {
+  const ext = ALLOWED_IMAGE_TYPES[file.type] || 'jpg';
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `${userId}/${Date.now()}_${index}_${rand}.${ext}`;
+}

@@ -16,10 +16,6 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return fallback;
 
-      if (user.email?.toLowerCase() === 'gonza18av@gmail.com') {
-        return '/admin';
-      }
-
       const { data: profile } = await supabase
         .from('profiles')
         .select('es_admin, tipo_anunciante')
@@ -42,6 +38,9 @@ export async function GET(request: Request) {
   // 1. Soporte para flujo PKCE (con parámetro ?code=...)
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && next === '/nueva-clave') {
+      return NextResponse.redirect(`${origin}/nueva-clave`);
+    }
     if (!error) {
       const destination = await getDestination(next);
       return NextResponse.redirect(`${origin}${destination}`);
@@ -55,6 +54,10 @@ export async function GET(request: Request) {
       type,
       token_hash,
     });
+    if (!error && type === 'recovery') {
+      // Recuperación de contraseña: ir directo a elegir la nueva clave
+      return NextResponse.redirect(`${origin}/nueva-clave`);
+    }
     if (!error) {
       const destination = await getDestination(next);
       return NextResponse.redirect(`${origin}${destination}`);

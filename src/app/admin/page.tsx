@@ -49,7 +49,7 @@ export default async function AdminDashboardPage() {
       <AdminRealtimeDashboard
         initialStats={stats}
         adminProfile={profile}
-        adminEmail={user.email || 'gonza18av@gmail.com'}
+        adminEmail={user.email || ''}
         adminId={user.id}
       />
     </div>

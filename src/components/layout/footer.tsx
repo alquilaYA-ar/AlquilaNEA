@@ -90,6 +90,16 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/terminos" className="hover:text-white transition">
+                  Términos y Condiciones
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacidad" className="hover:text-white transition">
+                  Política de Privacidad
+                </Link>
+              </li>
+              <li>
                 <span className="text-[11px] text-slate-500">Plan Freemium de lanzamiento en el NEA</span>
               </li>
             </ul>

@@ -2,7 +2,30 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { Propiedad } from '@/types/database';
-import { PropertyFilterInput, propertyFilterSchema } from '@/lib/validations/property';
+import {
+  PropertyFilterInput,
+  propertyFilterSchema,
+  createPropertySchema,
+  updatePropertySchema,
+} from '@/lib/validations/property';
+import { firstZodError } from '@/lib/validations/auth';
+import { calculateMaxPhotos } from '@/lib/photo-limits';
+
+// Columnas públicas del perfil (NUNCA exponer email, teléfono ni flags de admin a visitantes)
+const PUBLIC_PROFILE_COLUMNS =
+  'id, nombre_completo, nombre_inmobiliaria, matricula_inmobiliaria, tipo_anunciante, whatsapp, avatar_url, created_at';
+
+async function assertNotSuspended(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const { data } = await supabase.from('profiles').select('suspendido').eq('id', userId).single();
+  if (data?.suspendido) {
+    throw new Error('Tu cuenta está suspendida. Contactá a soporte.');
+  }
+}
+
+function isOwnStorageUrl(url: string, userId: string) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return !!base && url.startsWith(`${base}/storage/v1/object/public/properties/${userId}/`);
+}
 import { revalidatePath } from 'next/cache';
 
 export async function searchProperties(filters: Partial<PropertyFilterInput> = {}) {
@@ -18,7 +41,7 @@ export async function searchProperties(filters: Partial<PropertyFilterInput> = {
         provincias (*),
         localidades (*),
         barrios (*),
-        profiles (*),
+        profiles (${PUBLIC_PROFILE_COLUMNS}),
         propiedad_fotos (*)
       `, { count: 'exact' })
       .eq('estado', 'activa');
@@ -99,6 +122,7 @@ export async function searchProperties(filters: Partial<PropertyFilterInput> = {
 }
 
 export async function getPropertyById(id: string): Promise<Propiedad | null> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -108,7 +132,7 @@ export async function getPropertyById(id: string): Promise<Propiedad | null> {
         provincias (*),
         localidades (*),
         barrios (*),
-        profiles (*),
+        profiles (${PUBLIC_PROFILE_COLUMNS}),
         propiedad_fotos (*)
       `)
       .eq('id', id)
@@ -126,30 +150,17 @@ export async function getPropertyById(id: string): Promise<Propiedad | null> {
 }
 
 export async function trackPropertyView(propertyId: string) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyId)) {
+    return { success: false };
+  }
   try {
     const supabase = await createClient();
-
-    // 1. Intentar llamar a la función RPC de postgres (Security Definer para saltar RLS anónimo)
-    const { error: rpcError } = await supabase.rpc('increment_visitas', {
-      prop_id: propertyId,
-    });
-
-    if (rpcError) {
-      // 2. Fallback: Actualización directa por consulta
-      const { data: prop } = await supabase
-        .from('propiedades')
-        .select('visitas_count')
-        .eq('id', propertyId)
-        .single();
-
-      if (prop) {
-        await supabase
-          .from('propiedades')
-          .update({ visitas_count: (prop.visitas_count || 0) + 1 })
-          .eq('id', propertyId);
-      }
+    // Función SECURITY DEFINER de Postgres: incrementa de forma atómica sin abrir permisos de UPDATE
+    const { error } = await supabase.rpc('increment_visitas', { prop_id: propertyId });
+    if (error) {
+      console.error('Error tracking property view:', error.message);
+      return { success: false };
     }
-
     return { success: true };
   } catch (err) {
     console.error('Error tracking property view:', err);
@@ -192,6 +203,28 @@ export async function createProperty(input: CreatePropertyActionInput) {
     }
 
     const anuncianteId = user.id;
+    await assertNotSuspended(supabase, user.id);
+
+    // Validación estricta del lado del servidor (nunca confiar en el cliente)
+    const parsed = createPropertySchema.safeParse(input);
+    if (!parsed.success) {
+      throw new Error(firstZodError(parsed.error));
+    }
+    input = { ...input, ...parsed.data, barrioId: parsed.data.barrioId ?? null, direccionCalle: parsed.data.direccionCalle || undefined } as CreatePropertyActionInput;
+
+    const maxPhotos = calculateMaxPhotos({
+      ambientes: input.ambientes,
+      cochera: input.cochera,
+      terrazaBalcon: input.terrazaBalcon,
+      patio: input.patio,
+      pileta: input.pileta,
+    }).maxPhotos;
+    if (input.fotosUrls.length > maxPhotos) {
+      throw new Error(`Superaste el máximo de ${maxPhotos} fotos permitido para este inmueble.`);
+    }
+    if (!input.fotosUrls.every((u) => isOwnStorageUrl(u, user.id))) {
+      throw new Error('Alguna de las fotos no es válida.');
+    }
 
     // 2. Insertar la propiedad en Supabase
     const { data: prop, error: propError } = await supabase
@@ -317,6 +350,16 @@ export async function updateProperty(input: UpdatePropertyActionInput) {
       throw new Error('Debes iniciar sesión para editar una propiedad.');
     }
 
+    const parsed = updatePropertySchema.safeParse(input);
+    if (!parsed.success) {
+      throw new Error(firstZodError(parsed.error));
+    }
+    input = { ...input, ...parsed.data } as UpdatePropertyActionInput;
+
+    if (input.estado === 'activa') {
+      await assertNotSuspended(supabase, user.id);
+    }
+
     // Actualizar estrictamente solo los campos modificables (SIN tocar ubicaciones)
     const { error } = await supabase
       .from('propiedades')
@@ -416,15 +459,30 @@ export async function addPropertyPhotos(propertyId: string, fotosUrls: string[])
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autorizado.');
 
+    if (!Array.isArray(fotosUrls) || fotosUrls.length === 0 || fotosUrls.length > 10) {
+      throw new Error('Cantidad de fotos inválida.');
+    }
+    if (!fotosUrls.every((u) => typeof u === 'string' && isOwnStorageUrl(u, user.id))) {
+      throw new Error('Alguna de las fotos no es válida.');
+    }
+
     // Verificar que la propiedad pertenezca al usuario
     const { data: prop, error: propErr } = await supabase
       .from('propiedades')
-      .select('id, anunciante_id')
+      .select('id, anunciante_id, ambientes, cochera, terraza_balcon, patio, pileta')
       .eq('id', propertyId)
       .eq('anunciante_id', user.id)
       .single();
 
     if (propErr || !prop) throw new Error('Propiedad no encontrada o permisos insuficientes.');
+
+    const maxPhotos = calculateMaxPhotos({
+      ambientes: prop.ambientes,
+      cochera: prop.cochera,
+      terrazaBalcon: prop.terraza_balcon,
+      patio: prop.patio,
+      pileta: prop.pileta,
+    }).maxPhotos;
 
     // Obtener fotos actuales
     const { data: existingPhotos } = await supabase
@@ -434,6 +492,9 @@ export async function addPropertyPhotos(propertyId: string, fotosUrls: string[])
       .order('orden', { ascending: false });
 
     const currentCount = existingPhotos?.length || 0;
+    if (currentCount + fotosUrls.length > maxPhotos) {
+      throw new Error(`Superaste el máximo de ${maxPhotos} fotos permitido para este inmueble.`);
+    }
     const hasCover = existingPhotos?.some((p) => p.es_portada) || false;
 
     const newRows = fotosUrls.map((url, idx) => ({
