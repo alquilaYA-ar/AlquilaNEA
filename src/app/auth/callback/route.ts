@@ -32,6 +32,10 @@ export async function GET(request: Request) {
     } catch (err) {
       console.error('Error resolving user role in callback:', err);
     }
+    // Un usuario no-admin nunca debe terminar en /admin ni en rutas externas
+    if (!fallback.startsWith('/') || fallback.startsWith('//') || fallback.startsWith('/admin')) {
+      return '/mis-publicaciones';
+    }
     return fallback;
   };
 

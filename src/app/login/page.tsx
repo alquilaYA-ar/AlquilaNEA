@@ -8,7 +8,12 @@ import { signIn, signUp, getCurrentUser } from '@/actions/auth';
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const explicitRedirect = searchParams.get('redirectTo');
+  const rawRedirect = searchParams.get('redirectTo');
+  // Solo se aceptan rutas internas; /admin jamás se usa como destino para no-admins
+  const explicitRedirect =
+    rawRedirect && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') && !rawRedirect.startsWith('/admin')
+      ? rawRedirect
+      : null;
   const isVerifiedParam = searchParams.get('verified') === 'true';
   const modeParam = searchParams.get('mode');
 

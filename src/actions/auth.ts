@@ -25,7 +25,7 @@ export async function signUp(input: SignUpInput) {
       email: input.email,
       password: input.password,
       options: {
-        emailRedirectTo: `${siteUrl}/auth/callback?next=/publicar`,
+        emailRedirectTo: `${siteUrl}/auth/callback?next=/mis-publicaciones`,
         data: {
           nombre_completo: input.nombreCompleto,
           whatsapp: input.whatsapp,
