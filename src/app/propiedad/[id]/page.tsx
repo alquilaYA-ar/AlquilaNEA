@@ -120,8 +120,37 @@ export default async function PropiedadDetallePage({ params }: PropiedadDetalleP
     property.provincias?.nombre,
   ].filter(Boolean).join(', ');
 
+  const listingJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'RealEstateListing',
+    name: property.titulo,
+    description: property.descripcion,
+    url: propertyUrl,
+    image: mainImageUrl,
+    datePosted: property.created_at,
+    offers: {
+      '@type': 'Offer',
+      price: property.precio_mensual,
+      priceCurrency: property.moneda || 'ARS',
+      availability:
+        property.estado === 'activa'
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+    },
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: property.localidades?.nombre,
+      addressRegion: property.provincias?.nombre,
+      addressCountry: 'AR',
+    },
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(listingJsonLd) }}
+      />
       {/* Contador de visitas en segundo plano */}
       <TrackPropertyView propertyId={property.id} />
 

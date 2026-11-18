@@ -9,6 +9,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: site, changeFrequency: 'daily', priority: 1 },
     { url: `${site}/propiedades`, changeFrequency: 'hourly', priority: 0.9 },
+    { url: `${site}/alquileres-corrientes`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${site}/alquileres-chaco`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${site}/contacto`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${site}/terminos`, changeFrequency: 'yearly', priority: 0.1 },
     { url: `${site}/privacidad`, changeFrequency: 'yearly', priority: 0.1 },

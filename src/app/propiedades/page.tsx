@@ -1,4 +1,12 @@
+import type { Metadata } from 'next';
 import { searchProperties } from '@/actions/properties';
+
+export const metadata: Metadata = {
+  title: 'Explorar Alquileres en Corrientes y Chaco',
+  description:
+    'Buscá departamentos, casas, PH y monoambientes en alquiler en Corrientes Capital, Resistencia y todo el NEA. Filtrá por precio, ambientes y dueño directo.',
+  alternates: { canonical: '/propiedades' },
+};
 import { getProvincias } from '@/actions/locations';
 import { PropertyCard } from '@/components/properties/property-card';
 import { FilterSidebar } from '@/components/search/filter-sidebar';

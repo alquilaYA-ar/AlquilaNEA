@@ -22,6 +22,11 @@ export function Footer() {
             </h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li>
+                <Link href="/alquileres-corrientes" className="hover:text-orange-400 transition font-semibold text-slate-200">
+                  Todos en Corrientes
+                </Link>
+              </li>
+              <li>
                 <Link href="/propiedades?provinciaId=1&localidadId=1" className="hover:text-orange-400 transition">
                   Corrientes Capital
                 </Link>
@@ -45,6 +50,11 @@ export function Footer() {
               Alquileres en Chaco
             </h4>
             <ul className="space-y-2 text-xs text-slate-400">
+              <li>
+                <Link href="/alquileres-chaco" className="hover:text-orange-400 transition font-semibold text-slate-200">
+                  Todos en Chaco
+                </Link>
+              </li>
               <li>
                 <Link href="/propiedades?provinciaId=2&localidadId=4" className="hover:text-orange-400 transition">
                   Resistencia
