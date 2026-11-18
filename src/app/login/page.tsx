@@ -96,7 +96,7 @@ function LoginFormContent() {
 
         if (!res.success) {
           setErrorMessage(
-            res.error && (res.error.includes('suspendida') || res.error.includes('válido') || res.error.includes('obligatoria'))
+            res.error && (res.error.includes('Demasiados') || res.error.includes('suspendida') || res.error.includes('válido') || res.error.includes('obligatoria'))
               ? res.error
               : 'Correo o contraseña incorrectos.'
           );

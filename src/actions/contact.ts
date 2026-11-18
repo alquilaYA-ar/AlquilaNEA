@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { contactMessageSchema, firstZodError } from '@/lib/validations/auth';
+import { getClientIp, rateLimit, TOO_MANY_REQUESTS } from '@/lib/rate-limit';
 
 export async function submitContactMessage(raw: unknown) {
   try {
@@ -17,6 +18,10 @@ export async function submitContactMessage(raw: unknown) {
     }
 
     const supabase = await createClient();
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `contact:ip:${ip}`, 5, 3600))) {
+      return { success: false, error: TOO_MANY_REQUESTS };
+    }
     const { data: { user } } = await supabase.auth.getUser();
 
     const { error } = await supabase.from('mensajes_contacto').insert({

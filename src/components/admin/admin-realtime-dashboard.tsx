@@ -20,8 +20,6 @@ import {
 } from 'lucide-react';
 import { AdminStats, getAdminStats } from '@/actions/admin';
 import { formatCurrency } from '@/lib/utils';
-import { AdminUserTable } from '@/components/admin/admin-user-table';
-import { AdminContactMessages } from '@/components/admin/admin-contact-messages';
 import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/types/database';
 
@@ -90,37 +88,12 @@ export function AdminRealtimeDashboard({
 
   return (
     <div className="space-y-10">
-      {/* CABECERA DEL PANEL */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-white shadow-sm">
-              <Shield className="w-3.5 h-3.5 text-orange-400" />
-              Panel de Administración Central
-            </span>
-
-            <span
-              className={`text-xs font-bold px-3 py-1 rounded-full border flex items-center gap-1.5 transition-all ${
-                pulseLive
-                  ? 'bg-emerald-500 text-white border-emerald-600 scale-105'
-                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              <span>Tiempo Real Activo</span>
-            </span>
-          </div>
-
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-2">
-            Métricas, Tráfico & Control de AlquilaNEA
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Monitoreo en vivo de visitas, oferta inmobiliaria y anunciantes en Corrientes & Chaco.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          {/* Botón Refrescar Manual */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Resumen General</h1>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-slate-400 font-semibold hidden sm:inline">
+            Actualizado: {lastUpdated.toLocaleTimeString('es-AR')}
+          </span>
           <button
             type="button"
             onClick={refreshStats}
@@ -131,21 +104,6 @@ export function AdminRealtimeDashboard({
             <RefreshCw className={`w-3.5 h-3.5 ${isPending ? 'animate-spin text-orange-600' : ''}`} />
             <span className="hidden sm:inline">Actualizar</span>
           </button>
-
-          <Link
-            href="/propiedades"
-            className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition flex items-center gap-1.5"
-          >
-            <Home className="w-4 h-4 text-slate-400" />
-            <span>Portal Público</span>
-          </Link>
-
-          <Link
-            href="/publicar"
-            className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5"
-          >
-            <span>+ Publicar Aviso</span>
-          </Link>
         </div>
       </div>
 
@@ -379,73 +337,6 @@ export function AdminRealtimeDashboard({
         </div>
       </div>
 
-      {/* BUZÓN DE MENSAJES DEL FORMULARIO DE CONTACTO */}
-      <AdminContactMessages />
-
-      {/* GESTIÓN DE USUARIOS CON ACCIÓN DE SUSPENDER / ELIMINAR */}
-      <AdminUserTable initialUsers={stats.users} currentAdminId={adminId} />
-
-      {/* PUBLICACIONES MÁS VISITADAS EN TIEMPO REAL */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Eye className="w-5 h-5 text-emerald-600" />
-              Avisos Más Visitados (Ranking en Vivo)
-            </h2>
-            <p className="text-xs text-slate-500">
-              Propiedades con mayor tracción e interés por parte de inquilinos
-            </p>
-          </div>
-          <span className="text-[11px] text-slate-400 font-semibold">
-            Actualizado: {lastUpdated.toLocaleTimeString('es-AR')}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {stats.topVisitedProperties.map((prop) => (
-            <div
-              key={prop.id}
-              className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-4 hover:border-slate-300 transition"
-            >
-              <div className="space-y-1 min-w-0 flex-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  {prop.localidad} • {prop.anunciante}
-                </span>
-                <Link
-                  href={`/propiedad/${prop.id}`}
-                  className="font-bold text-slate-900 hover:text-orange-600 text-sm truncate block transition"
-                >
-                  {prop.titulo}
-                </Link>
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <span>{formatCurrency(prop.precio_mensual, 'ARS')}</span>
-                  <span>•</span>
-                  <span className="capitalize text-[11px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                    {prop.estado}
-                  </span>
-                </div>
-              </div>
-
-              <div className="text-right shrink-0">
-                <div className="text-base font-black text-emerald-700 flex items-center gap-1 justify-end">
-                  <Eye className="w-4 h-4" />
-                  <span>{prop.visitas_count}</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-semibold block">visitas</span>
-                <Link
-                  href={`/propiedad/${prop.id}`}
-                  className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-bold mt-1"
-                >
-                  <span>Ver aviso</span>
-                  <ArrowUpRight className="w-3 h-3" />
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
-

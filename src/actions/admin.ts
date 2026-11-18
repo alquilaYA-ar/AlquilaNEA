@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { removeStorageFilesByUrls, removeUserStorageFolder } from '@/lib/storage-cleanup';
 
 export interface AdminStats {
   totalUsers: number;
@@ -308,6 +309,14 @@ export async function deleteUserByAdmin(userId: string) {
       throw new Error('No puedes eliminar tu propia cuenta de administrador.');
     }
 
+    // Limpiar fotos del Storage antes de borrar (las filas desaparecen en cascada)
+    const { data: userFotos } = await supabase
+      .from('propiedad_fotos')
+      .select('storage_path, propiedades!inner(anunciante_id)')
+      .eq('propiedades.anunciante_id', userId);
+    await removeStorageFilesByUrls(supabase, (userFotos || []).map((f: any) => f.storage_path));
+    await removeUserStorageFolder(supabase, userId);
+
     // Borra auth.users (y en cascada perfil, publicaciones y fotos) con una función segura de la BD
     const { error: rpcErr } = await supabase.rpc('admin_delete_user', { target_user: userId });
     if (rpcErr) {
@@ -380,6 +389,79 @@ export async function deleteContactMessage(id: string) {
     const { supabase } = await requireAdmin();
     const { error } = await supabase.from('mensajes_contacto').delete().eq('id', id);
     if (error) throw new Error(error.message);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Moderación de publicaciones (solo administrador)
+// ----------------------------------------------------------------------------
+export interface AdminProperty {
+  id: string;
+  titulo: string;
+  precio_mensual: number;
+  moneda: string;
+  estado: 'activa' | 'pausada' | 'alquilada';
+  visitas_count: number;
+  created_at: string;
+  localidad: string;
+  anunciante: string;
+}
+
+export async function getAdminProperties(): Promise<AdminProperty[]> {
+  try {
+    const { supabase } = await requireAdmin();
+    const { data, error } = await supabase
+      .from('propiedades')
+      .select('id, titulo, precio_mensual, moneda, estado, visitas_count, created_at, localidades (nombre), profiles (nombre_completo, nombre_inmobiliaria)')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) throw new Error(error.message);
+    return (data || []).map((p: any) => ({
+      id: p.id,
+      titulo: p.titulo,
+      precio_mensual: Number(p.precio_mensual),
+      moneda: p.moneda || 'ARS',
+      estado: p.estado,
+      visitas_count: p.visitas_count || 0,
+      created_at: p.created_at,
+      localidad: p.localidades?.nombre || '-',
+      anunciante: p.profiles?.nombre_inmobiliaria || p.profiles?.nombre_completo || '-',
+    }));
+  } catch (err) {
+    console.error('getAdminProperties error:', err);
+    return [];
+  }
+}
+
+export async function setPropertyStateByAdmin(id: string, estado: 'activa' | 'pausada' | 'alquilada') {
+  try {
+    if (!UUID_RE.test(id)) throw new Error('Identificador inválido.');
+    if (!['activa', 'pausada', 'alquilada'].includes(estado)) throw new Error('Estado inválido.');
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase.from('propiedades').update({ estado }).eq('id', id);
+    if (error) throw new Error(error.message);
+    revalidatePath('/propiedades');
+    revalidatePath('/');
+    revalidatePath(`/propiedad/${id}`);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deletePropertyByAdmin(id: string) {
+  try {
+    if (!UUID_RE.test(id)) throw new Error('Identificador inválido.');
+    const { supabase } = await requireAdmin();
+    const { data: fotos } = await supabase.from('propiedad_fotos').select('storage_path').eq('propiedad_id', id);
+    const { error } = await supabase.from('propiedades').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    await removeStorageFilesByUrls(supabase, (fotos || []).map((f: any) => f.storage_path));
+    revalidatePath('/propiedades');
+    revalidatePath('/');
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };

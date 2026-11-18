@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Profile } from '@/types/database';
 import { revalidatePath } from 'next/cache';
 import { getSiteUrl } from '@/lib/utils';
+import { getClientIp, rateLimit, TOO_MANY_REQUESTS } from '@/lib/rate-limit';
 import { signUpSchema, signInSchema, emailSchema, passwordSchema, firstZodError } from '@/lib/validations/auth';
 
 export interface SignUpInput {
@@ -27,6 +28,11 @@ export async function signUp(rawInput: SignUpInput) {
 
     const supabase = await createClient();
     const siteUrl = getSiteUrl();
+
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `signup:ip:${ip}`, 5, 3600))) {
+      return { success: false, error: TOO_MANY_REQUESTS };
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email: input.email,
@@ -75,6 +81,14 @@ export async function signIn(rawEmail: string, rawPassword: string) {
     const { email, password } = parsedIn.data;
 
     const supabase = await createClient();
+
+    // Anti fuerza bruta: por IP (20 / 15 min) y por correo (6 / 15 min)
+    const ip = await getClientIp();
+    const okIp = await rateLimit(supabase, `login:ip:${ip}`, 20, 900);
+    const okEmail = await rateLimit(supabase, `login:email:${email}`, 6, 900);
+    if (!okIp || !okEmail) {
+      return { success: false, error: TOO_MANY_REQUESTS, isAdmin: false };
+    }
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -161,6 +175,10 @@ export async function requestPasswordReset(rawEmail: string) {
     }
     const supabase = await createClient();
     const siteUrl = getSiteUrl();
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `reset:ip:${ip}`, 5, 3600)) || !(await rateLimit(supabase, `reset:email:${parsed.data}`, 3, 3600))) {
+      return { success: false, error: TOO_MANY_REQUESTS };
+    }
     // Respuesta siempre genérica: no revelamos si el correo existe o no (anti-enumeración)
     await supabase.auth.resetPasswordForEmail(parsed.data, {
       redirectTo: `${siteUrl}/auth/callback?next=/nueva-clave`,

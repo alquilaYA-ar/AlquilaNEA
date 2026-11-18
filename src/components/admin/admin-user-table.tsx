@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Users,
   Search,
@@ -36,6 +36,9 @@ interface AdminUserTableProps {
 
 export function AdminUserTable({ initialUsers, currentAdminId }: AdminUserTableProps) {
   const [users, setUsers] = useState<AdminUser[]>(initialUsers);
+  useEffect(() => {
+    setUsers(initialUsers);
+  }, [initialUsers]);
   const [searchTerm, setSearchTerm] = useState('');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);

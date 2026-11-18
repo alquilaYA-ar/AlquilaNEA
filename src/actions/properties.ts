@@ -10,6 +10,7 @@ import {
 } from '@/lib/validations/property';
 import { firstZodError } from '@/lib/validations/auth';
 import { calculateMaxPhotos } from '@/lib/photo-limits';
+import { removeStorageFilesByUrls } from '@/lib/storage-cleanup';
 
 // Columnas públicas del perfil (NUNCA exponer email, teléfono ni flags de admin a visitantes)
 const PUBLIC_PROFILE_COLUMNS =
@@ -407,6 +408,13 @@ export async function deleteProperty(propertyId: string) {
 
     if (!user) throw new Error('No autorizado.');
 
+    // Guardar las URLs de las fotos antes de borrar para limpiar el Storage
+    const { data: fotos } = await supabase
+      .from('propiedad_fotos')
+      .select('storage_path, propiedades!inner(anunciante_id)')
+      .eq('propiedad_id', propertyId)
+      .eq('propiedades.anunciante_id', user.id);
+
     const { error } = await supabase
       .from('propiedades')
       .delete()
@@ -414,6 +422,8 @@ export async function deleteProperty(propertyId: string) {
       .eq('anunciante_id', user.id);
 
     if (error) throw new Error(error.message);
+
+    await removeStorageFilesByUrls(supabase, (fotos || []).map((f: any) => f.storage_path));
 
     revalidatePath('/');
     revalidatePath('/propiedades');
