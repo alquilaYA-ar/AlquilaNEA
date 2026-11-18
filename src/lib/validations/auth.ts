@@ -87,3 +87,4 @@ export type ContactMessageInput = z.infer<typeof contactMessageSchema>;
 export function firstZodError(error: z.ZodError): string {
   return error.issues[0]?.message || 'Datos inválidos';
 }
+
