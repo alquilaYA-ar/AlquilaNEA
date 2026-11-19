@@ -112,33 +112,11 @@ if (isAdmin) {
       return (
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
-            href="/mi-cuenta"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-xs font-semibold text-slate-800 transition"
-            title="Ver y editar mis datos"
-          >
-            {isDuenoDirecto ? (
-              <UserCheck className="w-3.5 h-3.5 text-orange-600" />
-            ) : (
-              <Building2 className="w-3.5 h-3.5 text-blue-700" />
-            )}
-            <span className="max-w-[110px] sm:max-w-[130px] truncate">{displayName}</span>
-          </Link>
-
-          <Link
             href="/mis-publicaciones"
-            className="text-xs font-bold text-slate-700 hover:text-orange-600 transition px-2 py-1.5 hidden md:block"
+            className="text-sm font-semibold text-slate-600 hover:text-orange-600 transition px-2 py-1.5 hidden md:block"
           >
             Mis Avisos
           </Link>
-
-          <button
-            onClick={handleSignOut}
-            title="Cerrar Sesión"
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden lg:inline">Cerrar Sesión</span>
-          </button>
 
           <Link
             href="/publicar"
@@ -148,6 +126,30 @@ if (isAdmin) {
             <span className="hidden sm:inline">Publicar Gratis</span>
             <span className="sm:hidden">Publicar</span>
           </Link>
+
+          <div className="flex items-center gap-1.5 pl-2 sm:pl-3 border-l border-slate-200">
+            <Link
+              href="/mi-cuenta"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-xs font-semibold text-slate-800 transition"
+              title="Ver y editar mis datos"
+            >
+              {isDuenoDirecto ? (
+                <UserCheck className="w-3.5 h-3.5 text-orange-600" />
+              ) : (
+                <Building2 className="w-3.5 h-3.5 text-blue-700" />
+              )}
+              <span className="max-w-[100px] sm:max-w-[130px] truncate">{displayName}</span>
+            </Link>
+
+            <button
+              onClick={handleSignOut}
+              title="Cerrar Sesión"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden lg:inline">Cerrar Sesión</span>
+            </button>
+          </div>
         </div>
         );
 }
