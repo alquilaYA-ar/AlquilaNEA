@@ -5,7 +5,15 @@ import { Profile } from '@/types/database';
 import { revalidatePath } from 'next/cache';
 import { getSiteUrl } from '@/lib/utils';
 import { getClientIp, rateLimit, TOO_MANY_REQUESTS } from '@/lib/rate-limit';
-import { signUpSchema, signInSchema, emailSchema, passwordSchema, firstZodError } from '@/lib/validations/auth';
+import {
+  signUpSchema,
+  signInSchema,
+  emailSchema,
+  passwordSchema,
+  updateProfileSchema,
+  UpdateProfileInput,
+  firstZodError,
+} from '@/lib/validations/auth';
 
 export interface SignUpInput {
   email: string;
@@ -208,5 +216,55 @@ export async function updatePassword(rawPassword: string) {
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || 'No se pudo actualizar la contraseña.' };
+  }
+}
+
+export async function updateMyProfile(rawInput: UpdateProfileInput) {
+  try {
+    const parsed = updateProfileSchema.safeParse(rawInput);
+    if (!parsed.success) {
+      return { success: false, error: firstZodError(parsed.error) };
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Tu sesión expiró. Volvé a iniciar sesión.' };
+    }
+
+    const { data: current } = await supabase
+      .from('profiles')
+      .select('tipo_anunciante')
+      .eq('id', user.id)
+      .single();
+
+    const isInmo = current?.tipo_anunciante === 'inmobiliaria';
+    const v = parsed.data;
+
+    if (isInmo && !v.nombreInmobiliaria?.trim()) {
+      return { success: false, error: 'El nombre de la inmobiliaria es obligatorio.' };
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        nombre_completo: v.nombreCompleto,
+        whatsapp: v.whatsapp,
+        telefono: v.telefono || null,
+        nombre_inmobiliaria: isInmo ? v.nombreInmobiliaria || null : null,
+        matricula_inmobiliaria: isInmo ? v.matriculaInmobiliaria || null : null,
+      })
+      .eq('id', user.id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath('/mi-cuenta');
+    revalidatePath('/mis-publicaciones');
+    revalidatePath('/', 'layout');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'No se pudieron guardar los cambios.' };
   }
 }

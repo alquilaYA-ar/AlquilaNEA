@@ -45,13 +45,21 @@ export default async function MisPublicacionesPage() {
           </p>
         </div>
 
-        <Link
-          href="/publicar"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-sm transition self-start sm:self-auto cursor-pointer"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>Publicar Nueva Propiedad</span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          <Link
+            href="/mi-cuenta"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm transition"
+          >
+            <span>Mis Datos</span>
+          </Link>
+          <Link
+            href="/publicar"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-sm transition cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Publicar Nueva Propiedad</span>
+          </Link>
+        </div>
       </div>
 
       {/* Lista de Publicaciones */}

@@ -68,6 +68,25 @@ export const signInSchema = z.object({
   password: z.string().min(1, 'La contraseña es obligatoria').max(72),
 });
 
+export const updateProfileSchema = z.object({
+  nombreCompleto: nombreSchema,
+  whatsapp: phoneSchema,
+  telefono: phoneSchema.optional().or(z.literal('')),
+  nombreInmobiliaria: z
+    .string()
+    .trim()
+    .max(150, 'El nombre de la inmobiliaria no puede superar los 150 caracteres')
+    .optional(),
+  matriculaInmobiliaria: z
+    .string()
+    .trim()
+    .max(50, 'La matrícula no puede superar los 50 caracteres')
+    .regex(/^[\p{L}\d\s.\-/]*$/u, 'La matrícula contiene caracteres no válidos')
+    .optional(),
+});
+
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
 export const contactMessageSchema = z.object({
   nombre: nombreSchema,
   email: emailSchema,
