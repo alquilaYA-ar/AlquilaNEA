@@ -13,3 +13,4 @@ export default async function MiCuentaPage() {
 
   return <ProfileForm profile={profile} email={user.email || profile.email_contacto} />;
 }
+

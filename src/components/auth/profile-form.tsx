@@ -247,3 +247,4 @@ export function ProfileForm({ profile, email }: ProfileFormProps) {
     </div>
   );
 }
+
