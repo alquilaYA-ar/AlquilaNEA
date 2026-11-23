@@ -53,3 +53,14 @@ export function buildWhatsAppLink(
   return `https://wa.me/${cleanPhone}?text=${message}`;
 }
 
+/**
+ * Serializa un objeto JSON-LD de forma segura para inyección en <script type="application/ld+json">.
+ * Escapa caracteres que podrían romper el cierre de la etiqueta script o causar XSS.
+ */
+export function safeJsonLd(obj: unknown): string {
+  return JSON.stringify(obj)
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
+    .replace(/</g, '\\u003c');
+}
+

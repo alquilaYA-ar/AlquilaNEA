@@ -21,7 +21,16 @@ export const propertyFilterSchema = z.object({
 
 export type PropertyFilterInput = z.infer<typeof propertyFilterSchema>;
 
-const TIPOS_INMUEBLE = ['departamento', 'casa', 'ph', 'oficina', 'local', 'monoambiente'] as const;
+export const TIPOS_INMUEBLE = ['departamento', 'casa', 'ph', 'oficina', 'local', 'monoambiente'] as const;
+
+export const TIPOS_INMUEBLE_LABELS: Record<(typeof TIPOS_INMUEBLE)[number], string> = {
+  departamento: 'Departamento',
+  casa: 'Casa',
+  ph: 'PH',
+  oficina: 'Oficina',
+  local: 'Local Comercial',
+  monoambiente: 'Monoambiente',
+};
 
 export const createPropertySchema = z.object({
   provinciaId: z.coerce.number({ required_error: 'La provincia es obligatoria' }).int().positive(),

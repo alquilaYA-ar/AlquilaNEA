@@ -33,13 +33,35 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANTE: getUser() valida el JWT y refresca automáticamente el Access Token
   // utilizando el Refresh Token cuando ha expirado.
   const { data: { user } } = await supabase.auth.getUser();
+  const pathname = request.nextUrl.pathname;
 
-  // Protección de rutas privadas (ej: /publicar si no está autenticado)
-  if (!user && request.nextUrl.pathname.startsWith('/publicar')) {
+  // Rutas que requieren estar autenticado
+  const authRequiredPrefixes = ['/publicar', '/mis-publicaciones', '/mi-cuenta'];
+  const isAuthRequired = authRequiredPrefixes.some((prefix) => pathname.startsWith(prefix));
+
+  if (!user && isAuthRequired) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('redirectTo', request.nextUrl.pathname);
+    loginUrl.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Rutas de administración: requieren autenticación + rol de admin.
+  // Usamos la función SQL is_admin() como única fuente de verdad (fail-closed).
+  if (pathname.startsWith('/admin')) {
+    if (!user) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      loginUrl.searchParams.set('redirectTo', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    const { data: isAdmin, error } = await supabase.rpc('is_admin');
+    if (error || !isAdmin) {
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = '/';
+      return NextResponse.redirect(homeUrl);
+    }
   }
 
   return supabaseResponse;

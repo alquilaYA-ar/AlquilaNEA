@@ -1,13 +1,48 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { type EmailOtpType } from '@supabase/supabase-js';
+import { getSiteUrl } from '@/lib/utils';
+
+// Whitelist de rutas internas permitidas después del callback de auth.
+// Evita open-redirect si un atacante manipula el parámetro ?next=.
+const ALLOWED_REDIRECT_PATHS = new Set([
+  '/',
+  '/admin',
+  '/mis-publicaciones',
+  '/mi-cuenta',
+  '/publicar',
+  '/nueva-clave',
+  '/propiedades',
+  '/contacto',
+]);
+
+function isAllowedRedirect(path: string): boolean {
+  if (!path.startsWith('/') || path.startsWith('//')) return false;
+  // Permitir subrutas de las rutas en whitelist (ej. /mis-publicaciones/editar/xxx)
+  for (const allowed of ALLOWED_REDIRECT_PATHS) {
+    if (path === allowed || path.startsWith(`${allowed}/`)) return true;
+  }
+  return false;
+}
+
+function isTrustedOrigin(origin: string): boolean {
+  // En desarrollo permitimos cualquier origin para no romper localhost
+  if (process.env.NODE_ENV === 'development') return true;
+  const siteUrl = getSiteUrl();
+  return origin === siteUrl;
+}
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type') as EmailOtpType | null;
-  const next = searchParams.get('next') ?? '/mis-publicaciones';
+  const rawNext = searchParams.get('next') ?? '/mis-publicaciones';
+  const next = isAllowedRedirect(rawNext) ? rawNext : '/mis-publicaciones';
+
+  if (!isTrustedOrigin(origin)) {
+    return NextResponse.redirect(`${getSiteUrl()}/login?error=origin_invalido`);
+  }
 
   const supabase = await createClient();
 

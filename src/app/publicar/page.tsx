@@ -22,6 +22,7 @@ import { Provincia, Localidad, Barrio, Profile } from '@/types/database';
 import { getProvincias, getLocalidades, getBarrios } from '@/actions/locations';
 import { createProperty } from '@/actions/properties';
 import { calculateMaxPhotos, filterValidImages, buildStoragePath } from '@/lib/photo-limits';
+import { TIPOS_INMUEBLE_LABELS } from '@/lib/validations/property';
 import { getCurrentUser } from '@/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 
@@ -523,11 +524,11 @@ export default function PublicarPage() {
                   onChange={(e) => setFormData({ ...formData, tipoInmueble: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm capitalize"
                 >
-                  <option value="departamento">Departamento</option>
-                  <option value="casa">Casa</option>
-                  <option value="monoambiente">Monoambiente</option>
-                  <option value="ph">PH</option>
-                  <option value="oficina">Oficina</option>
+                  {Object.entries(TIPOS_INMUEBLE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
 

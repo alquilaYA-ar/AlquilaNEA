@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { removeStorageFilesByUrls, removeUserStorageFolder } from '@/lib/storage-cleanup';
+import { getClientIp, rateLimitStrict, TOO_MANY_REQUESTS } from '@/lib/rate-limit';
 
 export interface AdminStats {
   totalUsers: number;
@@ -52,7 +53,8 @@ export interface AdminStats {
 
 export async function getAdminStats(): Promise<AdminStats> {
   try {
-    const supabase = await createClient();
+    // CRÍTICO: solo administradores pueden acceder a estadísticas y datos agregados de usuarios
+    const { supabase } = await requireAdminWithRateLimit('stats', 30, 60);
 
     // 1. Obtener todos los perfiles de usuarios
     const { data: profiles, error: profErr } = await supabase
@@ -222,23 +224,10 @@ export async function getAdminStats(): Promise<AdminStats> {
 
 export async function toggleSuspendUser(userId: string, suspend: boolean) {
   try {
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+    if (!UUID_RE.test(userId)) {
       throw new Error('Identificador de usuario inválido.');
     }
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No autenticado.');
-
-    // Verificar permisos de admin
-    const { data: adminProf } = await supabase
-      .from('profiles')
-      .select('es_admin, tipo_anunciante')
-      .eq('id', user.id)
-      .single();
-
-    if (!adminProf?.es_admin && adminProf?.tipo_anunciante !== 'admin') {
-      throw new Error('Permisos insuficientes. Solo administradores.');
-    }
+    const { supabase, user } = await requireAdminWithRateLimit('suspend', 10, 60);
 
     if (userId === user.id) {
       throw new Error('No puedes suspender tu propia cuenta de administrador.');
@@ -288,22 +277,34 @@ async function requireAdmin() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('No autenticado.');
 
-  const { data: adminProf } = await supabase
-    .from('profiles')
-    .select('es_admin, tipo_anunciante')
-    .eq('id', user.id)
-    .single();
-
-  if (!adminProf?.es_admin && adminProf?.tipo_anunciante !== 'admin') {
+  // Usar la función SQL centralizada is_admin() como única fuente de verdad.
+  // Verifica es_admin = TRUE o tipo_anunciante = 'admin', y que no esté suspendido.
+  const { data: isAdmin, error } = await supabase.rpc('is_admin');
+  if (error || !isAdmin) {
     throw new Error('Permisos insuficientes. Solo administradores.');
   }
   return { supabase, user };
 }
 
+async function requireAdminWithRateLimit(
+  action: string,
+  maxRequests: number,
+  windowSeconds: number
+) {
+  const result = await requireAdmin();
+  const ip = await getClientIp();
+  const key = `admin:${action}:${result.user.id}:${ip}`;
+  // Fail-closed: si el rate limiting no está disponible, bloqueamos la acción admin.
+  if (!(await rateLimitStrict(result.supabase, key, maxRequests, windowSeconds))) {
+    throw new Error(TOO_MANY_REQUESTS);
+  }
+  return result;
+}
+
 export async function deleteUserByAdmin(userId: string) {
   try {
     if (!UUID_RE.test(userId)) throw new Error('Identificador de usuario inválido.');
-    const { supabase, user } = await requireAdmin();
+    const { supabase, user } = await requireAdminWithRateLimit('delete-user', 10, 60);
 
     if (userId === user.id) {
       throw new Error('No puedes eliminar tu propia cuenta de administrador.');
@@ -352,7 +353,7 @@ export interface ContactMessage {
 
 export async function getContactMessages(): Promise<{ success: boolean; messages: ContactMessage[]; error?: string }> {
   try {
-    const { supabase } = await requireAdmin();
+    const { supabase } = await requireAdminWithRateLimit('messages', 30, 60);
     const { data, error } = await supabase
       .from('mensajes_contacto')
       .select('id, nombre, email, telefono, motivo, mensaje, leido, created_at')
@@ -374,7 +375,7 @@ export async function getContactMessages(): Promise<{ success: boolean; messages
 export async function setContactMessageRead(id: string, leido: boolean) {
   try {
     if (!UUID_RE.test(id)) throw new Error('Identificador inválido.');
-    const { supabase } = await requireAdmin();
+    const { supabase } = await requireAdminWithRateLimit('message-read', 30, 60);
     const { error } = await supabase.from('mensajes_contacto').update({ leido }).eq('id', id);
     if (error) throw new Error(error.message);
     return { success: true };
@@ -386,7 +387,7 @@ export async function setContactMessageRead(id: string, leido: boolean) {
 export async function deleteContactMessage(id: string) {
   try {
     if (!UUID_RE.test(id)) throw new Error('Identificador inválido.');
-    const { supabase } = await requireAdmin();
+    const { supabase } = await requireAdminWithRateLimit('message-delete', 20, 60);
     const { error } = await supabase.from('mensajes_contacto').delete().eq('id', id);
     if (error) throw new Error(error.message);
     return { success: true };
@@ -412,7 +413,7 @@ export interface AdminProperty {
 
 export async function getAdminProperties(): Promise<AdminProperty[]> {
   try {
-    const { supabase } = await requireAdmin();
+    const { supabase } = await requireAdminWithRateLimit('properties', 30, 60);
     const { data, error } = await supabase
       .from('propiedades')
       .select('id, titulo, precio_mensual, moneda, estado, visitas_count, created_at, localidades (nombre), profiles (nombre_completo, nombre_inmobiliaria)')
@@ -440,7 +441,7 @@ export async function setPropertyStateByAdmin(id: string, estado: 'activa' | 'pa
   try {
     if (!UUID_RE.test(id)) throw new Error('Identificador inválido.');
     if (!['activa', 'pausada', 'alquilada'].includes(estado)) throw new Error('Estado inválido.');
-    const { supabase } = await requireAdmin();
+    const { supabase } = await requireAdminWithRateLimit('property-state', 20, 60);
     const { error } = await supabase.from('propiedades').update({ estado }).eq('id', id);
     if (error) throw new Error(error.message);
     revalidatePath('/propiedades');
@@ -455,7 +456,7 @@ export async function setPropertyStateByAdmin(id: string, estado: 'activa' | 'pa
 export async function deletePropertyByAdmin(id: string) {
   try {
     if (!UUID_RE.test(id)) throw new Error('Identificador inválido.');
-    const { supabase } = await requireAdmin();
+    const { supabase } = await requireAdminWithRateLimit('property-delete', 20, 60);
     const { data: fotos } = await supabase.from('propiedad_fotos').select('storage_path').eq('propiedad_id', id);
     const { error } = await supabase.from('propiedades').delete().eq('id', id);
     if (error) throw new Error(error.message);

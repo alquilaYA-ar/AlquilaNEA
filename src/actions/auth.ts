@@ -209,6 +209,10 @@ export async function updatePassword(rawPassword: string) {
     if (!user) {
       return { success: false, error: 'El enlace expiró. Solicitá uno nuevo.' };
     }
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `password:update:${user.id}:${ip}`, 5, 3600))) {
+      return { success: false, error: TOO_MANY_REQUESTS };
+    }
     const { error } = await supabase.auth.updateUser({ password: parsed.data });
     if (error) {
       return { success: false, error: error.message };
@@ -230,6 +234,11 @@ export async function updateMyProfile(rawInput: UpdateProfileInput) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Tu sesión expiró. Volvé a iniciar sesión.' };
+    }
+
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `profile:update:${user.id}:${ip}`, 10, 60))) {
+      return { success: false, error: TOO_MANY_REQUESTS };
     }
 
     const { data: current } = await supabase

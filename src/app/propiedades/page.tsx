@@ -11,6 +11,7 @@ import { getProvincias } from '@/actions/locations';
 import { PropertyCard } from '@/components/properties/property-card';
 import { FilterSidebar } from '@/components/search/filter-sidebar';
 import { GeoSelector } from '@/components/search/geo-selector';
+import { Pagination } from '@/components/search/pagination';
 import { SearchX } from 'lucide-react';
 import Link from 'next/link';
 
@@ -44,7 +45,7 @@ export default async function PropiedadesPage({ searchParams }: PropiedadesPageP
     searchProperties(filters),
   ]);
 
-  const { properties, totalCount } = searchResult;
+  const { properties, totalCount, page: currentPage, totalPages } = searchResult;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -105,6 +106,7 @@ export default async function PropiedadesPage({ searchParams }: PropiedadesPageP
               </Link>
             </div>
           )}
+          <Pagination currentPage={currentPage} totalPages={totalPages} />
         </div>
       </div>
     </div>

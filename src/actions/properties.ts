@@ -11,6 +11,7 @@ import {
 import { firstZodError } from '@/lib/validations/auth';
 import { calculateMaxPhotos } from '@/lib/photo-limits';
 import { removeStorageFilesByUrls } from '@/lib/storage-cleanup';
+import { getClientIp, rateLimit, TOO_MANY_REQUESTS } from '@/lib/rate-limit';
 
 // Columnas públicas del perfil (NUNCA exponer email, teléfono ni flags de admin a visitantes)
 const PUBLIC_PROFILE_COLUMNS =
@@ -51,6 +52,7 @@ export async function searchProperties(filters: Partial<PropertyFilterInput> = {
     if (validated.localidadId) query = query.eq('localidad_id', validated.localidadId);
     if (validated.barrioId) query = query.eq('barrio_id', validated.barrioId);
     if (validated.tipoInmueble) query = query.eq('tipo_inmueble', validated.tipoInmueble);
+    if (validated.tipoAnunciante) query = query.eq('profiles.tipo_anunciante', validated.tipoAnunciante);
     if (validated.ambientes) {
       if (validated.ambientes >= 4) {
         query = query.gte('ambientes', 4);
@@ -94,13 +96,7 @@ export async function searchProperties(filters: Partial<PropertyFilterInput> = {
       };
     }
 
-    let results = (data as Propiedad[]) || [];
-
-    // Filtrar tipo de anunciante en el resultado si se solicitó
-    if (validated.tipoAnunciante) {
-      results = results.filter((p) => p.profiles?.tipo_anunciante === validated.tipoAnunciante);
-    }
-
+    const results = (data as Propiedad[]) || [];
     const totalCount = count ?? results.length;
 
     return {
@@ -201,6 +197,11 @@ export async function createProperty(input: CreatePropertyActionInput) {
     
     if (userError || !user) {
       throw new Error('Debes iniciar sesión para publicar una propiedad.');
+    }
+
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `property:create:${user.id}:${ip}`, 10, 3600))) {
+      throw new Error(TOO_MANY_REQUESTS);
     }
 
     const anuncianteId = user.id;
@@ -351,6 +352,11 @@ export async function updateProperty(input: UpdatePropertyActionInput) {
       throw new Error('Debes iniciar sesión para editar una propiedad.');
     }
 
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `property:update:${user.id}:${ip}`, 20, 3600))) {
+      throw new Error(TOO_MANY_REQUESTS);
+    }
+
     const parsed = updatePropertySchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(firstZodError(parsed.error));
@@ -407,6 +413,11 @@ export async function deleteProperty(propertyId: string) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) throw new Error('No autorizado.');
+
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `property:delete:${user.id}:${ip}`, 10, 3600))) {
+      throw new Error(TOO_MANY_REQUESTS);
+    }
 
     // Guardar las URLs de las fotos antes de borrar para limpiar el Storage
     const { data: fotos } = await supabase
@@ -468,6 +479,11 @@ export async function addPropertyPhotos(propertyId: string, fotosUrls: string[])
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autorizado.');
+
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `property:photos:add:${user.id}:${ip}`, 20, 3600))) {
+      throw new Error(TOO_MANY_REQUESTS);
+    }
 
     if (!Array.isArray(fotosUrls) || fotosUrls.length === 0 || fotosUrls.length > 10) {
       throw new Error('Cantidad de fotos inválida.');
@@ -539,6 +555,11 @@ export async function deletePropertyPhoto(photoId: string, propertyId: string) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autorizado.');
+
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `property:photos:delete:${user.id}:${ip}`, 20, 3600))) {
+      throw new Error(TOO_MANY_REQUESTS);
+    }
 
     // Verificar propiedad
     const { data: prop } = await supabase
@@ -612,6 +633,11 @@ export async function setCoverPhoto(photoId: string, propertyId: string) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autorizado.');
+
+    const ip = await getClientIp();
+    if (!(await rateLimit(supabase, `property:photos:cover:${user.id}:${ip}`, 20, 3600))) {
+      throw new Error(TOO_MANY_REQUESTS);
+    }
 
     // Verificar propiedad
     const { data: prop } = await supabase

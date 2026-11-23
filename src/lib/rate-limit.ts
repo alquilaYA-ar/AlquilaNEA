@@ -41,3 +41,30 @@ export async function rateLimit(
 }
 
 export const TOO_MANY_REQUESTS = 'Demasiados intentos. Esperá unos minutos y volvé a intentar.';
+
+/**
+ * Fail-closed: si la función SQL no existe o falla, bloquea la acción.
+ * Usar para operaciones críticas (especialmente panel de administración).
+ */
+export async function rateLimitStrict(
+  supabase: Supabase,
+  key: string,
+  max: number,
+  windowSeconds: number
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('check_rate_limit', {
+      p_key: key,
+      p_max: max,
+      p_window_seconds: windowSeconds,
+    });
+    if (error) {
+      console.error('rateLimitStrict error:', error.message);
+      return false;
+    }
+    return data !== false;
+  } catch (err) {
+    console.error('rateLimitStrict exception:', err);
+    return false;
+  }
+}

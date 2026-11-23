@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
-import { getSiteUrl } from '@/lib/utils';
+import { getSiteUrl, safeJsonLd } from '@/lib/utils';
 
 const siteUrl = getSiteUrl();
 
@@ -92,7 +92,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
         />
         <Navbar />
         <main className="flex-1">{children}</main>

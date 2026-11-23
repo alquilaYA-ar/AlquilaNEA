@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { Filter, RotateCcw } from 'lucide-react';
+import { TIPOS_INMUEBLE_LABELS } from '@/lib/validations/property';
 
 export function FilterSidebar() {
   const router = useRouter();
@@ -142,12 +143,11 @@ export function FilterSidebar() {
           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
           <option value="">Todos los tipos</option>
-          <option value="departamento">Departamento</option>
-          <option value="casa">Casa</option>
-          <option value="monoambiente">Monoambiente</option>
-          <option value="ph">PH</option>
-          <option value="oficina">Oficina</option>
-          <option value="local">Local Comercial</option>
+          {Object.entries(TIPOS_INMUEBLE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
         </select>
       </div>
 

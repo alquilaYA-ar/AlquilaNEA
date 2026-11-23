@@ -27,6 +27,7 @@ import {
 } from '@/actions/properties';
 import { createClient } from '@/lib/supabase/client';
 import { calculateMaxPhotos, filterValidImages, buildStoragePath } from '@/lib/photo-limits';
+import { TIPOS_INMUEBLE_LABELS } from '@/lib/validations/property';
 
 interface EditPropertyFormProps {
   property: Propiedad;
@@ -588,12 +589,11 @@ export function EditPropertyForm({ property }: EditPropertyFormProps) {
               }
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm"
             >
-              <option value="departamento">Departamento</option>
-              <option value="casa">Casa</option>
-              <option value="monoambiente">Monoambiente</option>
-              <option value="duplex">Dúplex</option>
-              <option value="ph">PH</option>
-              <option value="quinta">Quinta / Casa de campo</option>
+              {Object.entries(TIPOS_INMUEBLE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
           </div>
 

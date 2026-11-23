@@ -19,7 +19,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { getPropertyById } from '@/actions/properties';
-import { formatCurrency, buildWhatsAppLink, getSiteUrl } from '@/lib/utils';
+import { formatCurrency, buildWhatsAppLink, getSiteUrl, safeJsonLd } from '@/lib/utils';
 import { PropertyGallery } from '@/components/properties/property-gallery';
 import { TrackPropertyView } from '@/components/properties/track-view';
 
@@ -149,7 +149,7 @@ export default async function PropiedadDetallePage({ params }: PropiedadDetalleP
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(listingJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(listingJsonLd) }}
       />
       {/* Contador de visitas en segundo plano */}
       <TrackPropertyView propertyId={property.id} />
