@@ -12,6 +12,8 @@ import { firstZodError } from '@/lib/validations/auth';
 import { calculateMaxPhotos } from '@/lib/photo-limits';
 import { removeStorageFilesByUrls } from '@/lib/storage-cleanup';
 import { getClientIp, rateLimit, TOO_MANY_REQUESTS } from '@/lib/rate-limit';
+import { unstable_cache } from 'next/cache';
+import { createPublicClient } from '@/lib/supabase/public';
 
 // Columnas públicas del perfil (NUNCA exponer email, teléfono ni flags de admin a visitantes)
 const PUBLIC_PROFILE_COLUMNS =
@@ -30,12 +32,9 @@ function isOwnStorageUrl(url: string, userId: string) {
 }
 import { revalidatePath } from 'next/cache';
 
-export async function searchProperties(filters: Partial<PropertyFilterInput> = {}) {
-  const parsed = propertyFilterSchema.safeParse(filters);
-  const validated = parsed.success ? parsed.data : propertyFilterSchema.parse({});
-
+async function fetchPropertiesSearch(validated: PropertyFilterInput) {
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     let query = supabase
       .from('propiedades')
       .select(`
@@ -118,10 +117,21 @@ export async function searchProperties(filters: Partial<PropertyFilterInput> = {
   }
 }
 
-export async function getPropertyById(id: string): Promise<Propiedad | null> {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+const cachedSearchProperties = unstable_cache(
+  fetchPropertiesSearch,
+  ['properties_search'],
+  { revalidate: 60, tags: ['properties'] }
+);
+
+export async function searchProperties(filters: Partial<PropertyFilterInput> = {}) {
+  const parsed = propertyFilterSchema.safeParse(filters);
+  const validated = parsed.success ? parsed.data : propertyFilterSchema.parse({});
+  return cachedSearchProperties(validated);
+}
+
+async function fetchPropertyById(id: string): Promise<Propiedad | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data, error } = await supabase
       .from('propiedades')
       .select(`
@@ -144,6 +154,17 @@ export async function getPropertyById(id: string): Promise<Propiedad | null> {
     console.error('Unexpected error in getPropertyById:', err);
     return null;
   }
+}
+
+const cachedGetPropertyById = unstable_cache(
+  fetchPropertyById,
+  ['property_by_id'],
+  { revalidate: 60, tags: ['properties'] }
+);
+
+export async function getPropertyById(id: string): Promise<Propiedad | null> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+  return cachedGetPropertyById(id);
 }
 
 export async function trackPropertyView(propertyId: string) {

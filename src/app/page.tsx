@@ -5,7 +5,9 @@ import { searchProperties } from '@/actions/properties';
 import { GeoSelector } from '@/components/search/geo-selector';
 import { PropertyCard } from '@/components/properties/property-card';
 
-export const dynamic = 'force-dynamic';
+// ISR: la home se cachea 60 segundos para servirse casi instantáneamente.
+// Se invalida automáticamente con revalidatePath('/') al crear/editar/borrar propiedades.
+export const revalidate = 60;
 
 export default async function HomePage() {
   const provincias = await getProvincias();

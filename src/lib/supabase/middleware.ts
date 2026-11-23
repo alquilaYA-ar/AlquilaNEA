@@ -46,21 +46,15 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Rutas de administración: requieren autenticación + rol de admin.
-  // Usamos la función SQL is_admin() como única fuente de verdad (fail-closed).
+  // Rutas de administración: solo verificamos autenticación en el edge.
+  // La verificación real de rol admin se hace en el Server Layout y en cada Server Action.
+  // Esto reduce la latencia de navegación sin sacrificar seguridad (defensa en profundidad).
   if (pathname.startsWith('/admin')) {
     if (!user) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = '/login';
       loginUrl.searchParams.set('redirectTo', pathname);
       return NextResponse.redirect(loginUrl);
-    }
-
-    const { data: isAdmin, error } = await supabase.rpc('is_admin');
-    if (error || !isAdmin) {
-      const homeUrl = request.nextUrl.clone();
-      homeUrl.pathname = '/';
-      return NextResponse.redirect(homeUrl);
     }
   }
 

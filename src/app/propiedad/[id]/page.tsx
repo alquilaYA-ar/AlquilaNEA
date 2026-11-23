@@ -20,6 +20,9 @@ import {
 } from 'lucide-react';
 import { getPropertyById } from '@/actions/properties';
 import { formatCurrency, buildWhatsAppLink, getSiteUrl, safeJsonLd } from '@/lib/utils';
+
+// ISR: cada ficha de propiedad se cachea 60 segundos.
+export const revalidate = 60;
 import { PropertyGallery } from '@/components/properties/property-gallery';
 import { TrackPropertyView } from '@/components/properties/track-view';
 
