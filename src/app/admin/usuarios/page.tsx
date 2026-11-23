@@ -1,10 +1,22 @@
+import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/actions/auth';
-import { getAdminStats } from '@/actions/admin';
-import { AdminUsersLive } from '@/components/admin/admin-users-live';
+import { AdminDashboard } from '@/components/admin/admin-dashboard';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminUsuariosPage() {
-  const [{ user }, stats] = await Promise.all([getCurrentUser(), getAdminStats()]);
-  return <AdminUsersLive initialStats={stats} currentAdminId={user?.id || ''} />;
+  const { user, profile } = await getCurrentUser();
+
+  if (!user) {
+    redirect('/login?redirectTo=/admin/usuarios');
+  }
+
+  return (
+    <AdminDashboard
+      initialTab="usuarios"
+      currentAdminId={user.id}
+      adminProfile={profile}
+      adminEmail={user.email || ''}
+    />
+  );
 }

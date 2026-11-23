@@ -51,10 +51,86 @@ export interface AdminStats {
   }[];
 }
 
+export interface AdminUsersData {
+  totalUsers: number;
+  duenosCount: number;
+  inmobiliariasCount: number;
+  users: {
+    id: string;
+    nombre_completo: string;
+    nombre_inmobiliaria: string | null;
+    tipo_anunciante: 'admin' | 'dueno_directo' | 'inmobiliaria';
+    email_contacto: string;
+    whatsapp: string;
+    suspendido: boolean;
+    created_at: string;
+    propiedadesCount: number;
+  }[];
+}
+
+export async function getAdminUsers(): Promise<AdminUsersData> {
+  try {
+    const { supabase } = await requireAdmin();
+
+    const { data: profiles, error: profErr } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (profErr) {
+      console.error('Error fetching admin users:', profErr);
+      throw new Error('No se pudieron cargar los usuarios.');
+    }
+
+    const allProfiles = profiles || [];
+
+    // Contar propiedades por usuario en una sola query liviana
+    const { data: propCounts, error: countErr } = await supabase
+      .from('propiedades')
+      .select('anunciante_id');
+
+    if (countErr) {
+      console.error('Error fetching property counts:', countErr);
+    }
+
+    const propsByUser: Record<string, number> = {};
+    (propCounts || []).forEach((p) => {
+      propsByUser[p.anunciante_id] = (propsByUser[p.anunciante_id] || 0) + 1;
+    });
+
+    const users = allProfiles.map((prof) => ({
+      id: prof.id,
+      nombre_completo: prof.nombre_completo,
+      nombre_inmobiliaria: prof.nombre_inmobiliaria || null,
+      tipo_anunciante: prof.tipo_anunciante,
+      email_contacto: prof.email_contacto,
+      whatsapp: prof.whatsapp,
+      suspendido: Boolean(prof.suspendido),
+      created_at: prof.created_at,
+      propiedadesCount: propsByUser[prof.id] || 0,
+    }));
+
+    return {
+      totalUsers: allProfiles.length,
+      duenosCount: allProfiles.filter((p) => p.tipo_anunciante === 'dueno_directo').length,
+      inmobiliariasCount: allProfiles.filter((p) => p.tipo_anunciante === 'inmobiliaria').length,
+      users,
+    };
+  } catch (err: any) {
+    console.error('getAdminUsers error:', err);
+    return {
+      totalUsers: 0,
+      duenosCount: 0,
+      inmobiliariasCount: 0,
+      users: [],
+    };
+  }
+}
+
 export async function getAdminStats(): Promise<AdminStats> {
   try {
     // CRÍTICO: solo administradores pueden acceder a estadísticas y datos agregados de usuarios
-    const { supabase } = await requireAdminWithRateLimit('stats', 30, 60);
+    const { supabase } = await requireAdmin();
 
     // 1. Obtener todos los perfiles de usuarios
     const { data: profiles, error: profErr } = await supabase
@@ -353,7 +429,7 @@ export interface ContactMessage {
 
 export async function getContactMessages(): Promise<{ success: boolean; messages: ContactMessage[]; error?: string }> {
   try {
-    const { supabase } = await requireAdminWithRateLimit('messages', 30, 60);
+    const { supabase } = await requireAdmin();
     const { data, error } = await supabase
       .from('mensajes_contacto')
       .select('id, nombre, email, telefono, motivo, mensaje, leido, created_at')
@@ -413,7 +489,7 @@ export interface AdminProperty {
 
 export async function getAdminProperties(): Promise<AdminProperty[]> {
   try {
-    const { supabase } = await requireAdminWithRateLimit('properties', 30, 60);
+    const { supabase } = await requireAdmin();
     const { data, error } = await supabase
       .from('propiedades')
       .select('id, titulo, precio_mensual, moneda, estado, visitas_count, created_at, localidades (nombre), profiles (nombre_completo, nombre_inmobiliaria)')

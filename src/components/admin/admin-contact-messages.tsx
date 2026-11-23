@@ -17,10 +17,10 @@ const MOTIVOS: Record<ContactMessage['motivo'], { label: string; cls: string }> 
   sugerencia: { label: 'Sugerencia', cls: 'bg-emerald-100 text-emerald-800' },
 };
 
-export function AdminContactMessages() {
-  const [messages, setMessages] = useState<ContactMessage[]>([]);
+export function AdminContactMessages({ initialMessages }: { initialMessages?: ContactMessage[] }) {
+  const [messages, setMessages] = useState<ContactMessage[]>(initialMessages || []);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialMessages || initialMessages.length === 0);
   const [filter, setFilter] = useState<'todos' | 'nuevos' | ContactMessage['motivo']>('todos');
   const [query, setQuery] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
