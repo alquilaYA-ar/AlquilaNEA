@@ -129,9 +129,12 @@ export async function searchProperties(filters: Partial<PropertyFilterInput> = {
   return cachedSearchProperties(validated);
 }
 
-async function fetchPropertyById(id: string): Promise<Propiedad | null> {
+export async function getPropertyById(id: string): Promise<Propiedad | null> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
   try {
-    const supabase = createPublicClient();
+    // Usamos el cliente con sesión (no el público) porque el cliente público/cache
+    // estaba devolviendo 404 en producción. Esto es más lento pero confiable.
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from('propiedades')
       .select(`
@@ -154,17 +157,6 @@ async function fetchPropertyById(id: string): Promise<Propiedad | null> {
     console.error('Unexpected error in getPropertyById:', err);
     return null;
   }
-}
-
-const cachedGetPropertyById = unstable_cache(
-  fetchPropertyById,
-  ['property_by_id'],
-  { revalidate: 60, tags: ['properties'] }
-);
-
-export async function getPropertyById(id: string): Promise<Propiedad | null> {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
-  return cachedGetPropertyById(id);
 }
 
 export async function trackPropertyView(propertyId: string) {
