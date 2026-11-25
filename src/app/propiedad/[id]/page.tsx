@@ -21,75 +21,83 @@ import {
 import { getPropertyById } from '@/actions/properties';
 import { formatCurrency, buildWhatsAppLink, getSiteUrl, safeJsonLd } from '@/lib/utils';
 
-// ISR: cada ficha de propiedad se cachea 60 segundos.
-export const revalidate = 60;
 import { PropertyGallery } from '@/components/properties/property-gallery';
 import { TrackPropertyView } from '@/components/properties/track-view';
+
+// ISR: cada ficha de propiedad se cachea 60 segundos.
+export const revalidate = 60;
 
 interface PropiedadDetallePageProps {
   params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: PropiedadDetallePageProps): Promise<Metadata> {
-  const { id } = await params;
-  const property = await getPropertyById(id);
+  try {
+    const { id } = await params;
+    const property = await getPropertyById(id);
 
-  if (!property) {
+    if (!property) {
+      return {
+        title: 'Propiedad no encontrada | AlquilaNEA',
+      };
+    }
+
+    const siteUrl = getSiteUrl();
+    const fotos = property.propiedad_fotos || [];
+    const portada = fotos.find((f) => f.es_portada) || fotos[0];
+    let imageUrl =
+      portada?.storage_path ||
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
+
+    if (!imageUrl.startsWith('http')) {
+      imageUrl = `${siteUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+    }
+
+    const ubicacion = [
+      property.barrios?.nombre,
+      property.localidades?.nombre,
+      property.provincias?.nombre,
+    ]
+      .filter(Boolean)
+      .join(', ');
+
+    const title = `${property.titulo} - ${formatCurrency(property.precio_mensual, property.moneda)} | AlquilaNEA`;
+    const description = `Alquiler en ${ubicacion}. ${property.ambientes} amb., ${property.dormitorios} dorm., ${property.banos} baños. Contacto directo por WhatsApp en AlquilaNEA.`;
+
     return {
-      title: 'Propiedad no encontrada | AlquilaNEA',
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        url: `${siteUrl}/propiedad/${property.id}`,
+        siteName: 'AlquilaNEA',
+        locale: 'es_AR',
+        type: 'article',
+        images: [
+          {
+            url: imageUrl,
+            secureUrl: imageUrl,
+            width: 1200,
+            height: 630,
+            alt: property.titulo,
+            type: imageUrl.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: [imageUrl],
+      },
+    };
+  } catch (err) {
+    console.error('generateMetadata error:', err);
+    return {
+      title: 'Propiedad | AlquilaNEA',
     };
   }
-
-  const siteUrl = getSiteUrl();
-  const fotos = property.propiedad_fotos || [];
-  const portada = fotos.find((f) => f.es_portada) || fotos[0];
-  let imageUrl =
-    portada?.storage_path ||
-    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
-
-  if (!imageUrl.startsWith('http')) {
-    imageUrl = `${siteUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-  }
-
-  const ubicacion = [
-    property.barrios?.nombre,
-    property.localidades?.nombre,
-    property.provincias?.nombre,
-  ]
-    .filter(Boolean)
-    .join(', ');
-
-  const title = `${property.titulo} - ${formatCurrency(property.precio_mensual, property.moneda)} | AlquilaNEA`;
-  const description = `Alquiler en ${ubicacion}. ${property.ambientes} amb., ${property.dormitorios} dorm., ${property.banos} baños. Contacto directo por WhatsApp en AlquilaNEA.`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      url: `${siteUrl}/propiedad/${property.id}`,
-      siteName: 'AlquilaNEA',
-      locale: 'es_AR',
-      type: 'article',
-      images: [
-        {
-          url: imageUrl,
-          secureUrl: imageUrl,
-          width: 1200,
-          height: 630,
-          alt: property.titulo,
-          type: imageUrl.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: [imageUrl],
-    },
-  };
 }
 
 export default async function PropiedadDetallePage({ params }: PropiedadDetallePageProps) {

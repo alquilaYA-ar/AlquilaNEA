@@ -6,9 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, currency: string = "ARS"): string {
+  const validCurrency = typeof currency === 'string' && currency.length === 3 ? currency : "ARS";
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
-    currency: currency,
+    currency: validCurrency,
     maximumFractionDigits: 0,
   }).format(amount);
 }
