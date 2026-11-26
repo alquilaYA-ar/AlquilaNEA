@@ -120,7 +120,7 @@ export async function searchProperties(filters: Partial<PropertyFilterInput> = {
 }
 
 export async function getPropertyById(id: string): Promise<Propiedad | null> {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
   try {
     const supabase = createPublicClient();
     const { data, error } = await supabase
