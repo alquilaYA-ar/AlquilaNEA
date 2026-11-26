@@ -12,7 +12,6 @@ import { firstZodError } from '@/lib/validations/auth';
 import { calculateMaxPhotos } from '@/lib/photo-limits';
 import { removeStorageFilesByUrls } from '@/lib/storage-cleanup';
 import { getClientIp, rateLimit, TOO_MANY_REQUESTS } from '@/lib/rate-limit';
-import { unstable_cache } from 'next/cache';
 import { createPublicClient } from '@/lib/supabase/public';
 
 // Columnas públicas del perfil (NUNCA exponer email, teléfono ni flags de admin a visitantes)
@@ -32,7 +31,10 @@ function isOwnStorageUrl(url: string, userId: string) {
 }
 import { revalidatePath } from 'next/cache';
 
-async function fetchPropertiesSearch(validated: PropertyFilterInput) {
+export async function searchProperties(filters: Partial<PropertyFilterInput> = {}) {
+  const parsed = propertyFilterSchema.safeParse(filters);
+  const validated = parsed.success ? parsed.data : propertyFilterSchema.parse({});
+
   try {
     const supabase = createPublicClient();
     let query = supabase
@@ -117,24 +119,10 @@ async function fetchPropertiesSearch(validated: PropertyFilterInput) {
   }
 }
 
-const cachedSearchProperties = unstable_cache(
-  fetchPropertiesSearch,
-  ['properties_search'],
-  { revalidate: 60, tags: ['properties'] }
-);
-
-export async function searchProperties(filters: Partial<PropertyFilterInput> = {}) {
-  const parsed = propertyFilterSchema.safeParse(filters);
-  const validated = parsed.success ? parsed.data : propertyFilterSchema.parse({});
-  return cachedSearchProperties(validated);
-}
-
 export async function getPropertyById(id: string): Promise<Propiedad | null> {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
   try {
-    // Usamos el cliente con sesión (no el público) porque el cliente público/cache
-    // estaba devolviendo 404 en producción. Esto es más lento pero confiable.
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data, error } = await supabase
       .from('propiedades')
       .select(`
