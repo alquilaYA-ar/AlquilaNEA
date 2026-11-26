@@ -102,7 +102,13 @@ export async function generateMetadata({ params }: PropiedadDetallePageProps): P
 
 export default async function PropiedadDetallePage({ params }: PropiedadDetallePageProps) {
   const { id } = await params;
-  const property = await getPropertyById(id);
+  let property: Awaited<ReturnType<typeof getPropertyById>> = null;
+
+  try {
+    property = await getPropertyById(id);
+  } catch (err) {
+    console.error('PropiedadDetallePage getPropertyById error:', err);
+  }
 
   if (!property) {
     notFound();
