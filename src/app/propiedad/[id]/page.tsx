@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: PropiedadDetallePageProps): P
     const portada = fotos.find((f) => f.es_portada) || fotos[0];
     let imageUrl =
       portada?.storage_path ||
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
+      '/placeholder-property.svg';
 
     if (!imageUrl.startsWith('http')) {
       imageUrl = `${siteUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
@@ -113,7 +113,7 @@ export default async function PropiedadDetallePage({ params }: PropiedadDetalleP
   const portada = fotos.find((f) => f.es_portada) || fotos[0];
   const mainImageUrl =
     portada?.storage_path ||
-    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
+    '/placeholder-property.svg';
 
   const whatsappNumber = property.profiles?.whatsapp || '';
   const siteUrl = getSiteUrl();

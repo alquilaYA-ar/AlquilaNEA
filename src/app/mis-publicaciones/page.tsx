@@ -87,7 +87,7 @@ export default async function MisPublicacionesPage() {
           <div className="grid grid-cols-1 gap-4">
             {properties.map((prop) => {
               const portada = prop.propiedad_fotos?.find((f) => f.es_portada) || prop.propiedad_fotos?.[0];
-              const imageUrl = portada?.storage_path || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80';
+              const imageUrl = portada?.storage_path || '/placeholder-property.svg';
 
               const ubicacionTexto = [
                 prop.barrios?.nombre,

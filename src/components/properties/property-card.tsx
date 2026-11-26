@@ -11,7 +11,7 @@ interface PropertyCardProps {
 export function PropertyCard({ property }: PropertyCardProps) {
   const isDuenoDirecto = property.profiles?.tipo_anunciante === 'dueno_directo';
   const portada = property.propiedad_fotos?.find((f) => f.es_portada) || property.propiedad_fotos?.[0];
-  const imageUrl = portada?.storage_path || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1000&q=80';
+  const imageUrl = portada?.storage_path || '/placeholder-property.svg';
 
   const whatsappNumber = property.profiles?.whatsapp || '';
   const propertyUrl = typeof window !== 'undefined' ? `${window.location.origin}/propiedad/${property.id}` : `/propiedad/${property.id}`;

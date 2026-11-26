@@ -18,8 +18,7 @@ export function PropertyGallery({ fotos, titulo }: PropertyGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  const fallbackImage =
-    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
+  const fallbackImage = '/placeholder-property.svg';
 
   const currentImage = fotos[activeIndex]?.storage_path || fallbackImage;
 
